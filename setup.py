@@ -26,6 +26,7 @@ setup(
     author="Felipe Aguirre Martinez",
     author_email="felipeam86@workit-software.com",
     packages=packages,
+    entry_points={'console_scripts': ['imgdownloader=imagedownloader.cli:main']},
     install_requires=[
         'Pillow>=4.2.1',
         'requests>=2.14.2',
