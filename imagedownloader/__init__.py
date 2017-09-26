@@ -8,14 +8,14 @@ Bulk image downloader from a list of urls
 import logging
 import sys
 
-from .downloader import ImageDownloader, async_download
+from .downloader import download
 
 __author__ = "Felipe Aguirre Martinez"
 __copyright__ = "Copyright 2017, Workit software"
 __version__ = 0.1
 __email__ = "faguirre@workit-software.com"
 
-__all__ = ['ImageDownloader', 'async_download']
+__all__ = ['download']
 
 # Create logger
 logger = logging.getLogger(__name__)

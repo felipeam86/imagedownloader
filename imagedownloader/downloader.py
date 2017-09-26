@@ -241,9 +241,9 @@ class ImageDownloader(object):
         return os.path.join(self.store_path, 'thumbs', thumb_id, thumb_guid + '.jpg')
 
 
-def async_download(iterator, store_path, n_workers=8, force=False, notebook=False,
-                   timeout=1., thumbs=True, thumbs_size=None, min_wait=0.,
-                   max_wait=0., proxies=None, headers=None):
+def download(iterator, store_path, n_workers=8, force=False, notebook=False,
+             timeout=1., thumbs=True, thumbs_size=None, min_wait=0.,
+             max_wait=0., proxies=None, headers=None):
     """Asynchronously download images using multiple threads.
 
     Parameters
