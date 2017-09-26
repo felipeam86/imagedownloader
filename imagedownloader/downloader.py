@@ -242,8 +242,8 @@ class ImageDownloader(object):
 
 
 def async_download(iterator, store_path, n_workers=8, force=False, notebook=False,
-                   timeout=1., thumbs=True, thumbs_size=None,
-                   min_wait=0., max_wait=0., proxies=None):
+                   timeout=1., thumbs=True, thumbs_size=None, min_wait=0.,
+                   max_wait=0., proxies=None, headers=None):
     """Asynchronously download images using multiple threads.
 
     Parameters
@@ -284,7 +284,8 @@ def async_download(iterator, store_path, n_workers=8, force=False, notebook=Fals
         thumbs_size=thumbs_size,
         min_wait=min_wait,
         max_wait=max_wait,
-        proxies=proxies
+        proxies=proxies,
+        headers=headers
     )
 
     if notebook:
