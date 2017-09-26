@@ -53,6 +53,8 @@ class ImageDownloader(object):
         Maximum wait time between image downloads
     proxies : list or dict
         Proxy or list of proxies to use for the requests
+    headers : dict
+        headers to be given to requests
     """
 
     DEFAULT_THUMBS = {
@@ -271,6 +273,8 @@ def download(iterator, store_path, n_workers=8, force=False, notebook=False,
         Maximum wait time between image downloads
     proxies : list or dict
         Proxy or list of proxies to use for the requests
+    headers : dict
+        headers to be given to requests
 
     Returns
     -------
