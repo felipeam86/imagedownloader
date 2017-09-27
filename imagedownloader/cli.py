@@ -6,10 +6,9 @@ CLI for image downloader
 """
 
 import argparse
-from multiprocessing import cpu_count
 
 from . import logger, download
-from .downloader import DEFAULT_HEADERS
+from . import config
 
 __author__ = "Felipe Aguirre Martinez"
 __copyright__ = "Copyright 2017, Workit software"
@@ -28,7 +27,7 @@ def parse():
     parser.add_argument('-o', '--store_path', type=str, default='imgs',
                         help="Root path where images should be stored")
 
-    parser.add_argument('--n_workers', type=int, default=cpu_count(),
+    parser.add_argument('--n_workers', type=int, default=config.N_WORKERS,
                         help="Number of simultaneous threads to use")
 
     parser.add_argument('-f', '--force', action='store_true',
@@ -83,38 +82,33 @@ def main():
         urls = [url.strip('\n') for url in fh.readlines()]
 
     if args.user_agent is not None:
-        DEFAULT_HEADERS.update(
+        config.HEADERS.update(
             {
                 'User-Agent': args.user_agent,
             }
         )
 
     if args.proxy is not None:
-        proxies = [
+        config.PROXIES = [
             {
                 "http": proxy,
                 "https": proxy
             }
             for proxy in args.proxy
         ]
-    else:
-        proxies = None
 
     if args.thumbs is not None:
-        thumbs = True
-        thumbs_size = {
+        config.THUMBS = True
+        config.THUMBS_SIZES = {
             str(thumb): (thumb, thumb)
             for thumb in args.thumbs
         }
-    else:
-        thumbs = False
-        thumbs_size = {}
 
     if args.debug:
         print(pprint_args_attributes(args))
-        logger.debug('User-Agent: ' + DEFAULT_HEADERS['User-Agent'])
-        logger.debug('Proxies: ' + str(proxies))
-        logger.debug('Thumbs: ' + str(thumbs_size))
+        logger.debug('User-Agent: ' + config.HEADERS['User-Agent'])
+        logger.debug('Proxies: ' + str(config.PROXIES))
+        logger.debug('Thumbs: ' + str(config.THUMBS_SIZES))
 
 
     results = download(
@@ -124,12 +118,12 @@ def main():
         force=args.force,
         notebook=args.notebook,
         timeout=args.timeout,
-        thumbs=thumbs,
-        thumbs_size=thumbs_size,
+        thumbs=config.THUMBS,
+        thumbs_size=config.THUMBS_SIZES,
         min_wait=args.min_wait,
         max_wait=args.max_wait,
-        proxies=proxies,
-        headers=DEFAULT_HEADERS
+        proxies=config.PROXIES,
+        headers=config.HEADERS
     )
 
     downloaded_imgs = len([

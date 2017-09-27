@@ -9,6 +9,7 @@ import random
 from concurrent import futures
 from time import sleep
 
+from . import config
 from .utils import md5sum, to_bytes
 
 try:
@@ -21,13 +22,6 @@ from PIL import Image
 import requests
 
 logger = logging.getLogger(__name__)
-
-DEFAULT_HEADERS = requests.utils.default_headers()
-DEFAULT_HEADERS.update(
-    {
-        'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:55.0) Gecko/20100101 Firefox/55.0',
-    }
-)
 
 
 class ImageDownloader(object):
@@ -57,26 +51,22 @@ class ImageDownloader(object):
         headers to be given to requests
     """
 
-    DEFAULT_THUMBS = {
-        'small': (50, 50),
-        'big': (200, 200),
-    }
 
-    def __init__(self, store_path, timeout=1., thumbs=True, thumbs_size=None,
+    def __init__(self, store_path, timeout=1., thumbs=config.THUMBS, thumbs_size=None,
                  min_wait=0., max_wait=0., proxies=None, headers=None):
 
         self.store_path = store_path
         self.timeout = timeout
         self.min_wait = min_wait
         self.max_wait = max_wait
-        self.headers = headers or DEFAULT_HEADERS
+        self.headers = headers or config.HEADERS
         assert (proxies is None) or isinstance(proxies, list) or isinstance(proxies, dict),\
             "proxies should be either a list or a list of dicts"
         self.proxies = proxies
         if thumbs:
             assert isinstance(thumbs_size, dict) or thumbs_size is None, \
-                "thumbs_size must be a dictionary. e.g. {}".format(self.DEFAULT_THUMBS)
-            self.thumbs_size = thumbs_size or self.DEFAULT_THUMBS
+                "thumbs_size must be a dictionary. e.g. {}".format(config.THUMBS)
+            self.thumbs_size = thumbs_size or config.THUMBS
         else:
             self.thumbs_size = {}
         self._makedirs()
