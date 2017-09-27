@@ -75,11 +75,7 @@ def pprint_args_attributes(args):
     return print_args + '=' * len(title)
 
 
-def main():
-    args = parse()
-
-    with open(args.urls, 'r') as fh:
-        urls = [url.strip('\n') for url in fh.readlines()]
+def update_config_with_args(args):
 
     if args.user_agent is not None:
         config.HEADERS.update(
@@ -103,6 +99,17 @@ def main():
             str(thumb): (thumb, thumb)
             for thumb in args.thumbs
         }
+
+    return config
+
+
+def main():
+    args = parse()
+
+    with open(args.urls, 'r') as fh:
+        urls = [url.strip('\n') for url in fh.readlines()]
+
+    config = update_config_with_args(args)
 
     if args.debug:
         print(pprint_args_attributes(args))
