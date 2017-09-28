@@ -24,11 +24,30 @@ def parse():
     parser.add_argument('urls', type=str,
                         help="Text file with the list of urls to be downloaded")
 
-    parser.add_argument('-o', '--store_path', type=str, default='imgs',
+    parser.add_argument('-o', '--store_path', type=str, default=config.STORE_PATH,
                         help="Root path where images should be stored")
+
+    parser.add_argument('--thumbs', type=int, action='append',
+                        help="Thumbnail size to be created. "
+                             "Can be specified as many times as thumbs sizes you want")
 
     parser.add_argument('--n_workers', type=int, default=config.N_WORKERS,
                         help="Number of simultaneous threads to use")
+
+    parser.add_argument('--timeout', type=float, default=config.TIMEOUT,
+                        help="Timeout to be given to the url request")
+
+    parser.add_argument('--min_wait', type=float, default=config.MIN_WAIT,
+                        help="Minimum wait time between image downloads")
+
+    parser.add_argument('--max_wait', type=float, default=config.MAX_WAIT,
+                        help="Maximum wait time between image downloads")
+
+    parser.add_argument('--proxy', type=str, action='append',
+                        help="Proxy or list of proxies to use for the requests")
+
+    parser.add_argument('-u', '--user_agent', type=str, default=config.USER_AGENT,
+                        help="User agent to be used for the requests")
 
     parser.add_argument('-f', '--force', action='store_true',
                         help="Force the download even if the files already exists")
@@ -36,27 +55,8 @@ def parse():
     parser.add_argument('--notebook', action='store_true',
                         help="Use the notebook version of tqdm")
 
-    parser.add_argument('--timeout', type=float, default=5.0,
-                        help="Timeout to be given to the url request")
-
-    parser.add_argument('--thumbs', type=int, action='append',
-                        help="Thumbnail size to be created. "
-                             "Can be specified as many times as thumbs sizes you want")
-
-    parser.add_argument('--min_wait', type=float, default=0.0,
-                        help="Minimum wait time between image downloads")
-
-    parser.add_argument('--max_wait', type=float, default=0.0,
-                        help="Maximum wait time between image downloads")
-
-    parser.add_argument('--proxy', type=str, action='append',
-                        help="Proxy or list of proxies to use for the requests")
-
     parser.add_argument('-d', '--debug', action='store_true',
                         help="Activate debug mode")
-
-    parser.add_argument('-u', '--user_agent', type=str,
-                        help="User agent to be used for the requests")
 
     args = parser.parse_args()
 
@@ -77,12 +77,7 @@ def pprint_args_attributes(args):
 
 def update_config_with_args(args):
 
-    if args.user_agent is not None:
-        config.HEADERS.update(
-            {
-                'User-Agent': args.user_agent,
-            }
-        )
+    config.HEADERS.update({'User-Agent': args.user_agent})
 
     if args.proxy is not None:
         config.PROXIES = [
@@ -121,16 +116,16 @@ def main():
     results = download(
         urls,
         args.store_path,
-        n_workers=args.n_workers,
-        force=args.force,
-        notebook=args.notebook,
-        timeout=args.timeout,
         thumbs=config.THUMBS,
         thumbs_size=config.THUMBS_SIZES,
+        n_workers=args.n_workers,
+        timeout=args.timeout,
         min_wait=args.min_wait,
         max_wait=args.max_wait,
         proxies=config.PROXIES,
-        headers=config.HEADERS
+        headers=config.HEADERS,
+        force=args.force,
+        notebook=args.notebook,
     )
 
     downloaded_imgs = len([

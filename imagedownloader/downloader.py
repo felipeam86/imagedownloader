@@ -52,8 +52,15 @@ class ImageDownloader(object):
     """
 
 
-    def __init__(self, store_path, timeout=1., thumbs=config.THUMBS, thumbs_size=None,
-                 min_wait=0., max_wait=0., proxies=None, headers=None):
+    def __init__(self,
+                 store_path=config.STORE_PATH,
+                 thumbs=config.THUMBS,
+                 thumbs_size=config.THUMBS_SIZES,
+                 timeout=config.TIMEOUT,
+                 min_wait=config.MIN_WAIT,
+                 max_wait=config.MAX_WAIT,
+                 proxies=config.PROXIES,
+                 headers=config.HEADERS):
 
         self.store_path = store_path
         self.timeout = timeout
@@ -233,9 +240,18 @@ class ImageDownloader(object):
         return os.path.join(self.store_path, 'thumbs', thumb_id, thumb_guid + '.jpg')
 
 
-def download(iterator, store_path, n_workers=8, force=False, notebook=False,
-             timeout=1., thumbs=True, thumbs_size=None, min_wait=0.,
-             max_wait=0., proxies=None, headers=None):
+def download(iterator,
+             store_path=config.STORE_PATH,
+             thumbs=config.THUMBS,
+             thumbs_size=config.THUMBS_SIZES,
+             n_workers=config.N_WORKERS,
+             timeout=config.TIMEOUT,
+             min_wait=config.MIN_WAIT,
+             max_wait=config.MAX_WAIT,
+             proxies=config.PROXIES,
+             headers=config.HEADERS,
+             force=False,
+             notebook=False):
     """Asynchronously download images using multiple threads.
 
     Parameters
@@ -273,9 +289,9 @@ def download(iterator, store_path, n_workers=8, force=False, notebook=False,
     """
     downloader = ImageDownloader(
         store_path,
-        timeout=timeout,
         thumbs=thumbs,
         thumbs_size=thumbs_size,
+        timeout=timeout,
         min_wait=min_wait,
         max_wait=max_wait,
         proxies=proxies,
