@@ -15,7 +15,7 @@ __copyright__ = "Copyright 2017, Workit software"
 __email__ = "faguirre@workit-software.com"
 
 
-def parse():
+def parse(args=None):
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description="Bulk image downloader from a list of urls"
@@ -58,7 +58,7 @@ def parse():
     parser.add_argument('-d', '--debug', action='store_true',
                         help="Activate debug mode")
 
-    args = parser.parse_args()
+    args = parser.parse_args(args)
 
     return args
 
@@ -98,8 +98,8 @@ def update_config_with_args(args):
     return config
 
 
-def main():
-    args = parse()
+def main(args=None):
+    args = parse(args)
 
     with open(args.urls, 'r') as fh:
         urls = [url.strip('\n') for url in fh.readlines()]
