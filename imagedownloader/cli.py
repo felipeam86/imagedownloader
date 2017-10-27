@@ -8,7 +8,7 @@ CLI for image downloader
 import argparse
 
 from . import logger, download
-from . import config
+from .settings import config
 
 __author__ = "Felipe Aguirre Martinez"
 __copyright__ = "Copyright 2017, Workit software"
@@ -24,29 +24,29 @@ def parse(args=None):
     parser.add_argument('urls', type=str,
                         help="Text file with the list of urls to be downloaded")
 
-    parser.add_argument('-o', '--store_path', type=str, default=config.STORE_PATH,
+    parser.add_argument('-o', '--store_path', type=str, default=config['STORE_PATH'],
                         help="Root path where images should be stored")
 
     parser.add_argument('--thumbs', type=int, action='append',
                         help="Thumbnail size to be created. "
                              "Can be specified as many times as thumbs sizes you want")
 
-    parser.add_argument('--n_workers', type=int, default=config.N_WORKERS,
+    parser.add_argument('--n_workers', type=int, default=config['N_WORKERS'],
                         help="Number of simultaneous threads to use")
 
-    parser.add_argument('--timeout', type=float, default=config.TIMEOUT,
+    parser.add_argument('--timeout', type=float, default=config['TIMEOUT'],
                         help="Timeout to be given to the url request")
 
-    parser.add_argument('--min_wait', type=float, default=config.MIN_WAIT,
+    parser.add_argument('--min_wait', type=float, default=config['MIN_WAIT'],
                         help="Minimum wait time between image downloads")
 
-    parser.add_argument('--max_wait', type=float, default=config.MAX_WAIT,
+    parser.add_argument('--max_wait', type=float, default=config['MAX_WAIT'],
                         help="Maximum wait time between image downloads")
 
     parser.add_argument('--proxy', type=str, action='append',
                         help="Proxy or list of proxies to use for the requests")
 
-    parser.add_argument('-u', '--user_agent', type=str, default=config.USER_AGENT,
+    parser.add_argument('-u', '--user_agent', type=str, default=config['USER_AGENT'],
                         help="User agent to be used for the requests")
 
     parser.add_argument('-f', '--force', action='store_true',
@@ -77,10 +77,10 @@ def pprint_args_attributes(args):
 
 def update_config_with_args(args):
 
-    config.HEADERS.update({'User-Agent': args.user_agent})
+    config['HEADERS'].update({'User-Agent': args.user_agent})
 
     if args.proxy is not None:
-        config.PROXIES = [
+        config['PROXIES'] = [
             {
                 "http": proxy,
                 "https": proxy
@@ -89,8 +89,8 @@ def update_config_with_args(args):
         ]
 
     if args.thumbs is not None:
-        config.THUMBS = True
-        config.THUMBS_SIZES = {
+        config['THUMBS'] = True
+        config['THUMBS_SIZES'] = {
             str(thumb): (thumb, thumb)
             for thumb in args.thumbs
         }
@@ -108,22 +108,21 @@ def main(args=None):
 
     if args.debug:
         print(pprint_args_attributes(args))
-        logger.debug('User-Agent: ' + config.HEADERS['User-Agent'])
-        logger.debug('Proxies: ' + str(config.PROXIES))
-        logger.debug('Thumbs: ' + str(config.THUMBS_SIZES))
-
-
+        logger.debug('User-Agent: ' + config['HEADERS']['User-Agent'])
+        logger.debug('Proxies: ' + str(config['PROXIES']))
+        logger.debug('Thumbs: ' + str(config['THUMBS_SIZES']))
+    print(args.store_path)
     results = download(
         urls,
         args.store_path,
-        thumbs=config.THUMBS,
-        thumbs_size=config.THUMBS_SIZES,
+        thumbs=config['THUMBS'],
+        thumbs_size=config['THUMBS_SIZES'],
         n_workers=args.n_workers,
         timeout=args.timeout,
         min_wait=args.min_wait,
         max_wait=args.max_wait,
-        proxies=config.PROXIES,
-        headers=config.HEADERS,
+        proxies=config['PROXIES'],
+        headers=config['HEADERS'],
         force=args.force,
         notebook=args.notebook,
     )

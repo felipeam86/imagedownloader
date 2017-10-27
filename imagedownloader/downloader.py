@@ -9,7 +9,7 @@ import random
 from concurrent import futures
 from time import sleep
 
-from . import config
+from .settings import config
 from .utils import md5sum, to_bytes
 
 try:
@@ -45,28 +45,27 @@ class ImageDownloader(object):
         Minimum wait time between image downloads
     max_wait : float
         Maximum wait time between image downloads
-    proxies : list or dict
+    proxies : list | dict
         Proxy or list of proxies to use for the requests
     headers : dict
         headers to be given to requests
     """
 
-
     def __init__(self,
-                 store_path=config.STORE_PATH,
-                 thumbs=config.THUMBS,
-                 thumbs_size=config.THUMBS_SIZES,
-                 timeout=config.TIMEOUT,
-                 min_wait=config.MIN_WAIT,
-                 max_wait=config.MAX_WAIT,
-                 proxies=config.PROXIES,
-                 headers=config.HEADERS):
 
         self.store_path = store_path
+                 store_path=config['STORE_PATH'],
+                 thumbs=config['THUMBS'],
+                 thumbs_size=config['THUMBS_SIZES'],
+                 timeout=config['TIMEOUT'],
+                 min_wait=config['MIN_WAIT'],
+                 max_wait=config['MAX_WAIT'],
+                 proxies=config['PROXIES'],
+                 headers=config['HEADERS']):
         self.timeout = timeout
         self.min_wait = min_wait
         self.max_wait = max_wait
-        self.headers = headers or config.HEADERS
+        self.headers = headers or config['HEADERS']
         assert (proxies is None) or isinstance(proxies, list) or isinstance(proxies, dict),\
             "proxies should be either a list or a list of dicts"
         self.proxies = proxies
@@ -241,15 +240,15 @@ class ImageDownloader(object):
 
 
 def download(iterator,
-             store_path=config.STORE_PATH,
-             thumbs=config.THUMBS,
-             thumbs_size=config.THUMBS_SIZES,
-             n_workers=config.N_WORKERS,
-             timeout=config.TIMEOUT,
-             min_wait=config.MIN_WAIT,
-             max_wait=config.MAX_WAIT,
-             proxies=config.PROXIES,
-             headers=config.HEADERS,
+             store_path=config['STORE_PATH'],
+             thumbs=config['THUMBS'],
+             thumbs_size=config['THUMBS_SIZES'],
+             n_workers=config['N_WORKERS'],
+             timeout=config['TIMEOUT'],
+             min_wait=config['MIN_WAIT'],
+             max_wait=config['MAX_WAIT'],
+             proxies=config['PROXIES'],
+             headers=config['HEADERS'],
              force=False,
              notebook=False):
     """Asynchronously download images using multiple threads.
@@ -277,7 +276,7 @@ def download(iterator,
         Minimum wait time between image downloads
     max_wait : float
         Maximum wait time between image downloads
-    proxies : list or dict
+    proxies : list | dict
         Proxy or list of proxies to use for the requests
     headers : dict
         headers to be given to requests
