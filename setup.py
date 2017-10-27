@@ -36,10 +36,19 @@ setup(
         'PyYAML',
     ],
     extras_require={
+        'tests': [
+            'pytest',
+            'pytest-pep8',
+            'pep8',
+            'autopep8',
+            'pytest-xdist',
+            'pytest-cov',
+        ],
         'dev': [
             'jupyter',
             'ipython',
-            'pandas'
+            'pandas',
+            'invoke',
         ],
     },
     long_description=long_description,
