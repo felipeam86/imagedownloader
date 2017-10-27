@@ -10,11 +10,6 @@ import sys
 
 from .downloader import download
 
-__author__ = "Felipe Aguirre Martinez"
-__copyright__ = "Copyright 2017, Workit software"
-__version__ = 0.1
-__email__ = "faguirre@workit-software.com"
-
 __all__ = ['download']
 
 # Create logger
