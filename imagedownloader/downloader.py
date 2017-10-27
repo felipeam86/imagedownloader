@@ -4,20 +4,15 @@
 import collections
 import hashlib
 import logging
-import os
 import random
 from concurrent import futures
 from time import sleep
+from pathlib import Path
+from io import BytesIO
 
 from .settings import config
 from .utils import md5sum, to_bytes
 
-try:
-    from cStringIO import StringIO as BytesIO
-except ImportError:
-    from io import BytesIO
-
-import six
 from PIL import Image
 import requests
 
@@ -52,8 +47,6 @@ class ImageDownloader(object):
     """
 
     def __init__(self,
-
-        self.store_path = store_path
                  store_path=config['STORE_PATH'],
                  thumbs=config['THUMBS'],
                  thumbs_size=config['THUMBS_SIZES'],
@@ -62,6 +55,8 @@ class ImageDownloader(object):
                  max_wait=config['MAX_WAIT'],
                  proxies=config['PROXIES'],
                  headers=config['HEADERS']):
+
+        self.store_path = Path(store_path).expanduser()
         self.timeout = timeout
         self.min_wait = min_wait
         self.max_wait = max_wait
@@ -71,8 +66,8 @@ class ImageDownloader(object):
         self.proxies = proxies
         if thumbs:
             assert isinstance(thumbs_size, dict) or thumbs_size is None, \
-                "thumbs_size must be a dictionary. e.g. {}".format(config.THUMBS)
-            self.thumbs_size = thumbs_size or config.THUMBS
+                f"thumbs_size must be a dictionary. e.g. {config['THUMBS']}"
+            self.thumbs_size = thumbs_size or config['THUMBS']
         else:
             self.thumbs_size = {}
         self._makedirs()
@@ -87,19 +82,17 @@ class ImageDownloader(object):
 
         subdirs = ['full']
         if hasattr(self, 'thumbs_size'):
-            subdirs += ['thumbs/{}'.format(size) for size in self.thumbs_size.keys()]
+            subdirs += [f'thumbs/{size}' for size in self.thumbs_size.keys()]
 
         for subdir in subdirs:
-            absolute_path = os.path.join(self.store_path, subdir)
-            if not os.path.exists(absolute_path):
-                os.makedirs(absolute_path)
+            Path(self.store_path, subdir).mkdir(exist_ok=True, parents=True)
 
     def __call__(self, urls, force=False, notebook=False):
         """Download url or list of urls
 
         Parameters
         ----------
-        urls : str or iterable
+        urls : str | list
             url or list of urls to be downloaded
 
         force : bool
@@ -110,7 +103,7 @@ class ImageDownloader(object):
 
         Returns
         -------
-        checksum : str or list
+        checksum : str | list
             If url is a str, the md5 checksum of the image file is returned.
             If url is iterable a list of md5 checksums of the image files is
             returned.
@@ -131,8 +124,8 @@ class ImageDownloader(object):
             try:
                 checksums[i] = self.download_image(url, force=force)
             except Exception as e:
-                logger.error('Error: {}'.format(e))
-                logger.error('For iteration {} and url: {}'.format(i, url))
+                logger.error(f'Error: {e}')
+                logger.error(f'For iteration {i} and url: {url}')
 
         return checksums
 
@@ -162,7 +155,7 @@ class ImageDownloader(object):
         """
         orig_img = None
         path = self.file_path(url)
-        if not os.path.exists(path) or force:
+        if not path.exists() or force:
             response = requests.get(
                 url,
                 timeout=self.timeout,
@@ -175,10 +168,10 @@ class ImageDownloader(object):
             # Only wait if image had to be downloaded
             sleep(random.uniform(self.min_wait, self.max_wait))
 
-        for thumb_id, size in six.iteritems(self.thumbs_size):
+        for thumb_id, size in self.thumbs_size.items():
             thumb_path = self.thumb_path(url, thumb_id)
-            if not os.path.exists(thumb_path) or force:
-                orig_img = orig_img or Image.open(path)
+            if not thumb_path.exists() or force:
+                orig_img = orig_img or Image.open(str(path))
                 thumb_image, thumb_buf = self.convert_image(orig_img, size)
                 self._persist_file(thumb_path, thumb_buf)
 
@@ -186,7 +179,7 @@ class ImageDownloader(object):
 
     @staticmethod
     def _persist_file(path, buf):
-        with open(path, 'wb') as f:
+        with path.open('wb') as f:
             f.write(buf.getvalue())
 
     @staticmethod
@@ -230,13 +223,13 @@ class ImageDownloader(object):
         """Hash url to get file path of full image
         """
         image_guid = hashlib.sha1(to_bytes(url)).hexdigest()
-        return os.path.join(self.store_path, 'full', image_guid + '.jpg')
+        return Path(self.store_path, 'full', image_guid + '.jpg')
 
     def thumb_path(self, url, thumb_id):
         """Hash url to get file path of thumbnail
         """
         thumb_guid = hashlib.sha1(to_bytes(url)).hexdigest()
-        return os.path.join(self.store_path, 'thumbs', thumb_id, thumb_guid + '.jpg')
+        return Path(self.store_path, 'thumbs', thumb_id, thumb_guid + '.jpg')
 
 
 def download(iterator,
@@ -313,8 +306,8 @@ def download(iterator,
         for future in tqdm(futures.as_completed(future_to_url), total=len(iterator), miniters=1):
             url = future_to_url[future]
             if future.exception() is not None:
-                logger.error('Error: {}'.format(future.exception()))
-                logger.error('For url: {}'.format(url))
+                logger.error(f'Error: {future.exception()}')
+                logger.error(f'For url: {url}')
                 results[url] = None
             else:
                 results[url] = future.result()
