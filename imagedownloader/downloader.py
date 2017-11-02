@@ -339,4 +339,5 @@ def download(iterator,
         notebook=notebook
     )
 
-    return downloader(iterator, force=force)
+    results = downloader(iterator, force=force)
+    return [str(results[url]) for url in iterator]
