@@ -29,11 +29,13 @@ class ImageDownloader(object):
     ----------
     store_path : str
         Root path where images should be stored
+    n_workers : int
+        Number of simultaneous threads to use
     timeout : float
         Timeout to be given to the url request
     thumbs : bool
         If True, create thumbnails of sizes according to self.thumbs_size
-    thumbs_size : dict
+    thumbs_size : dict | list
         Dictionary of the kind {name: (width, height)} indicating the thumbnail
         sizes to be created
     min_wait : float
@@ -44,30 +46,61 @@ class ImageDownloader(object):
         Proxy or list of proxies to use for the requests
     headers : dict
         headers to be given to requests
+    user_agent : str
+        User agent to be used for the requests
+    notebook : bool
+        If True, use the notebook version of tqdm
     """
 
     def __init__(self,
                  store_path=config['STORE_PATH'],
+                 n_workers=config['N_WORKERS'],
                  thumbs=config['THUMBS'],
                  thumbs_size=config['THUMBS_SIZES'],
                  timeout=config['TIMEOUT'],
                  min_wait=config['MIN_WAIT'],
                  max_wait=config['MAX_WAIT'],
                  proxies=config['PROXIES'],
-                 headers=config['HEADERS']):
+                 headers=config['HEADERS'],
+                 user_agent=config['USER_AGENT'],
+                 notebook=False):
 
         self.store_path = Path(store_path).expanduser()
         self.timeout = timeout
         self.min_wait = min_wait
         self.max_wait = max_wait
-        self.headers = headers or config['HEADERS']
+        self.n_workers = n_workers
+        self.notebook = notebook
+        self.headers = headers
+        if user_agent is not None:
+            self.headers.update({'User-Agent': user_agent})
         assert (proxies is None) or isinstance(proxies, list) or isinstance(proxies, dict),\
             "proxies should be either a list or a list of dicts"
-        self.proxies = proxies
+
+        if isinstance(proxies, dict):
+            self.proxies = proxies
+        elif isinstance(thumbs_size, list):
+            self.proxies = [
+                {
+                    "http": proxy,
+                    "https": proxy
+                }
+                for proxy in proxies
+            ]
+        else:
+            self.proxies = None
+
+        thumbs_size = thumbs_size or {}
         if thumbs:
-            assert isinstance(thumbs_size, dict) or thumbs_size is None, \
-                f"thumbs_size must be a dictionary. e.g. {config['THUMBS']}"
-            self.thumbs_size = thumbs_size or config['THUMBS']
+            if isinstance(thumbs_size, dict):
+                self.thumbs_size = thumbs_size
+            elif isinstance(thumbs_size, list):
+                self.thumbs_size = {
+                    str(thumb): (thumb, thumb)
+                    for thumb in thumbs_size
+                }
+            else:
+                raise Exception(f"thumbs_size must be a dictionary or a list")
         else:
             self.thumbs_size = {}
         self._makedirs()
@@ -80,14 +113,14 @@ class ImageDownloader(object):
 
     def _makedirs(self):
 
-        subdirs = ['full']
+        subdirs = ['.']
         if hasattr(self, 'thumbs_size'):
             subdirs += [f'thumbs/{size}' for size in self.thumbs_size.keys()]
 
         for subdir in subdirs:
             Path(self.store_path, subdir).mkdir(exist_ok=True, parents=True)
 
-    def __call__(self, urls, force=False, notebook=False):
+    def __call__(self, urls, force=False):
         """Download url or list of urls
 
         Parameters
@@ -98,36 +131,43 @@ class ImageDownloader(object):
         force : bool
             If True force the download even if the files already exists
 
-        notebook : bool
-            If True, use the notebook version of tqdm
-
         Returns
         -------
-        checksum : str | list
-            If url is a str, the md5 checksum of the image file is returned.
-            If url is iterable a list of md5 checksums of the image files is
-            returned.
+        paths : str | dict
+            If url is a str, path where the image was stored.
+            If url is iterable a dict with urls as keys and image path as
+            values. If image failed to download, None is given instead of
+            image path
         """
 
         if isinstance(urls, str):
             return self.download_image(urls, force=force)
 
-        assert isinstance(urls, collections.Iterable), "urls should be str or iterable"
+        assert isinstance(urls, collections.Iterable), \
+            "urls should be str or iterable"
 
-        if notebook:
+        if self.notebook:
             from tqdm import tqdm_notebook as tqdm
         else:
             from tqdm import tqdm
 
-        checksums = [None] * len(urls)
-        for i, url in tqdm(enumerate(urls), total=len(urls)):
-            try:
-                checksums[i] = self.download_image(url, force=force)
-            except Exception as e:
-                logger.error(f'Error: {e}')
-                logger.error(f'For iteration {i} and url: {url}')
+        with futures.ThreadPoolExecutor(max_workers=self.n_workers) as executor:
 
-        return checksums
+            future_to_url = dict(
+                (executor.submit(self.download_image, url, force), url)
+                for url in urls
+            )
+
+            paths = {}
+            for future in tqdm(futures.as_completed(future_to_url), total=len(urls), miniters=1):
+                url = future_to_url[future]
+                if future.exception() is not None:
+                    logger.error(f'Error: {future.exception()}')
+                    logger.error(f'For url: {url}')
+                    paths[url] = None
+                else:
+                    paths[url] = future.result()
+        return paths
 
     def download_image(self, url, force=False):
         """Download image, create thumbnails, store and return checksum.
@@ -150,8 +190,8 @@ class ImageDownloader(object):
 
         Returns
         -------
-        checksum : str
-            md5 checksum of the image file
+        path : str
+            Path where the image was stored
         """
         orig_img = None
         path = self.file_path(url)
@@ -175,7 +215,7 @@ class ImageDownloader(object):
                 thumb_image, thumb_buf = self.convert_image(orig_img, size)
                 self._persist_file(thumb_path, thumb_buf)
 
-        return md5sum(path)
+        return path
 
     @staticmethod
     def _persist_file(path, buf):
@@ -223,7 +263,7 @@ class ImageDownloader(object):
         """Hash url to get file path of full image
         """
         image_guid = hashlib.sha1(to_bytes(url)).hexdigest()
-        return Path(self.store_path, 'full', image_guid + '.jpg')
+        return Path(self.store_path, image_guid + '.jpg')
 
     def thumb_path(self, url, thumb_id):
         """Hash url to get file path of thumbnail
@@ -242,6 +282,7 @@ def download(iterator,
              max_wait=config['MAX_WAIT'],
              proxies=config['PROXIES'],
              headers=config['HEADERS'],
+             user_agent=config['USER_AGENT'],
              force=False,
              notebook=False):
     """Asynchronously download images using multiple threads.
@@ -273,43 +314,29 @@ def download(iterator,
         Proxy or list of proxies to use for the requests
     headers : dict
         headers to be given to requests
+    user_agent : str
+        User agent to be used for the requests
 
     Returns
     -------
-    checksum : dict
-        Dictionary with urls as keys and image md5 checksums as values.
+    paths : str | dict
+        If url is a str, path where the image was stored.
+        If url is iterable a dict with urls as keys and image path as
+        values. If image failed to download, None is given instead of
+        image path
     """
     downloader = ImageDownloader(
         store_path,
+        n_workers=n_workers,
         thumbs=thumbs,
         thumbs_size=thumbs_size,
         timeout=timeout,
         min_wait=min_wait,
         max_wait=max_wait,
         proxies=proxies,
-        headers=headers
+        headers=headers,
+        user_agent=user_agent,
+        notebook=notebook
     )
 
-    if notebook:
-        from tqdm import tqdm_notebook as tqdm
-    else:
-        from tqdm import tqdm
-
-    with futures.ThreadPoolExecutor(max_workers=n_workers) as executor:
-
-        future_to_url = dict(
-            (executor.submit(downloader, url, force), url)
-            for url in iterator
-        )
-
-        results = {}
-        for future in tqdm(futures.as_completed(future_to_url), total=len(iterator), miniters=1):
-            url = future_to_url[future]
-            if future.exception() is not None:
-                logger.error(f'Error: {future.exception()}')
-                logger.error(f'For url: {url}')
-                results[url] = None
-            else:
-                results[url] = future.result()
-
-    return results
+    return downloader(iterator, force=force)

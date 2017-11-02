@@ -11,6 +11,7 @@ import pandas as pd
 
 images_file = Path(__file__).parent / 'wikimedia.csv'
 
+
 def test_download():
 
     images = pd.read_csv(str(images_file), names=['url'])
@@ -42,7 +43,7 @@ def test_download():
         if response is not None
     ])
 
-    subdirs = ['full']
+    subdirs = ['.']
     for thumb_id, size in config['THUMBS_SIZES'].items():
         subdirs += [f'thumbs/{thumb_id}']
     print(subdirs)
@@ -51,7 +52,7 @@ def test_download():
         subdir_path = Path(config['STORE_PATH'], subdir)
         assert subdir_path.exists(), \
             f"Image directory {subdir_path} should exist after download"
-        nb_images = len(glob(str(subdir_path / '*')))
+        nb_images = len(glob(str(subdir_path / '*.jpg')))
         assert nb_images == downloaded, \
             f"Image directory {subdir_path} should contain {downloaded} " \
             f"images after download, but has {nb_images}"

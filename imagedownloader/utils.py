@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import six
 import hashlib
 
 
@@ -21,8 +20,8 @@ def to_bytes(text, encoding=None, errors='strict'):
     is already a bytes object, return it as-is."""
     if isinstance(text, bytes):
         return text
-    if not isinstance(text, six.string_types):
-        raise TypeError('to_bytes must receive a unicode, str or bytes '
+    if not isinstance(text, str):
+        raise TypeError('to_bytes must receive a str or bytes '
                         'object, got %s' % type(text).__name__)
     if encoding is None:
         encoding = 'utf-8'

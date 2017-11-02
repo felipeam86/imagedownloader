@@ -31,7 +31,6 @@ setup(
     install_requires=[
         'Pillow>=4.2.1',
         'requests>=2.14.2',
-        'six>=1.10',
         'tqdm>=4.15.0',
         'PyYAML',
     ],
