@@ -150,8 +150,8 @@ class ImageDownloader(object):
 
         Returns
         -------
-        checksum : str
-            md5 checksum of the image file
+        path : str
+            Path where the image was stored
         """
         orig_img = None
         path = self.file_path(url)
@@ -175,7 +175,7 @@ class ImageDownloader(object):
                 thumb_image, thumb_buf = self.convert_image(orig_img, size)
                 self._persist_file(thumb_path, thumb_buf)
 
-        return md5sum(path)
+        return path
 
     @staticmethod
     def _persist_file(path, buf):
@@ -276,8 +276,11 @@ def download(iterator,
 
     Returns
     -------
-    checksum : dict
-        Dictionary with urls as keys and image md5 checksums as values.
+    paths : str | dict
+        If url is a str, path where the image was stored.
+        If url is iterable a dict with urls as keys and image path as
+        values. If image failed to download, None is given instead of
+        image path
     """
     downloader = ImageDownloader(
         store_path,
