@@ -111,7 +111,7 @@ def main(args=None):
         logger.debug('User-Agent: ' + config['HEADERS']['User-Agent'])
         logger.debug('Proxies: ' + str(config['PROXIES']))
         logger.debug('Thumbs: ' + str(config['THUMBS_SIZES']))
-    print(args.store_path)
+
     results = download(
         urls,
         args.store_path,
