@@ -80,7 +80,7 @@ class ImageDownloader(object):
 
     def _makedirs(self):
 
-        subdirs = ['full']
+        subdirs = ['.']
         if hasattr(self, 'thumbs_size'):
             subdirs += [f'thumbs/{size}' for size in self.thumbs_size.keys()]
 
@@ -223,7 +223,7 @@ class ImageDownloader(object):
         """Hash url to get file path of full image
         """
         image_guid = hashlib.sha1(to_bytes(url)).hexdigest()
-        return Path(self.store_path, 'full', image_guid + '.jpg')
+        return Path(self.store_path, image_guid + '.jpg')
 
     def thumb_path(self, url, thumb_id):
         """Hash url to get file path of thumbnail
