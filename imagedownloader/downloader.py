@@ -29,6 +29,8 @@ class ImageDownloader(object):
     ----------
     store_path : str
         Root path where images should be stored
+    n_workers : int
+        Number of simultaneous threads to use
     timeout : float
         Timeout to be given to the url request
     thumbs : bool
@@ -44,22 +46,28 @@ class ImageDownloader(object):
         Proxy or list of proxies to use for the requests
     headers : dict
         headers to be given to requests
+    notebook : bool
+        If True, use the notebook version of tqdm
     """
 
     def __init__(self,
                  store_path=config['STORE_PATH'],
+                 n_workers=config['N_WORKERS'],
                  thumbs=config['THUMBS'],
                  thumbs_size=config['THUMBS_SIZES'],
                  timeout=config['TIMEOUT'],
                  min_wait=config['MIN_WAIT'],
                  max_wait=config['MAX_WAIT'],
                  proxies=config['PROXIES'],
-                 headers=config['HEADERS']):
+                 headers=config['HEADERS'],
+                 notebook=False):
 
         self.store_path = Path(store_path).expanduser()
         self.timeout = timeout
         self.min_wait = min_wait
         self.max_wait = max_wait
+        self.n_workers = n_workers
+        self.notebook = notebook
         self.headers = headers or config['HEADERS']
         assert (proxies is None) or isinstance(proxies, list) or isinstance(proxies, dict),\
             "proxies should be either a list or a list of dicts"
@@ -87,7 +95,7 @@ class ImageDownloader(object):
         for subdir in subdirs:
             Path(self.store_path, subdir).mkdir(exist_ok=True, parents=True)
 
-    def __call__(self, urls, force=False, notebook=False):
+    def __call__(self, urls, force=False):
         """Download url or list of urls
 
         Parameters
@@ -98,36 +106,43 @@ class ImageDownloader(object):
         force : bool
             If True force the download even if the files already exists
 
-        notebook : bool
-            If True, use the notebook version of tqdm
-
         Returns
         -------
-        checksum : str | list
-            If url is a str, the md5 checksum of the image file is returned.
-            If url is iterable a list of md5 checksums of the image files is
-            returned.
+        paths : str | dict
+            If url is a str, path where the image was stored.
+            If url is iterable a dict with urls as keys and image path as
+            values. If image failed to download, None is given instead of
+            image path
         """
 
         if isinstance(urls, str):
             return self.download_image(urls, force=force)
 
-        assert isinstance(urls, collections.Iterable), "urls should be str or iterable"
+        assert isinstance(urls, collections.Iterable), \
+            "urls should be str or iterable"
 
-        if notebook:
+        if self.notebook:
             from tqdm import tqdm_notebook as tqdm
         else:
             from tqdm import tqdm
 
-        checksums = [None] * len(urls)
-        for i, url in tqdm(enumerate(urls), total=len(urls)):
-            try:
-                checksums[i] = self.download_image(url, force=force)
-            except Exception as e:
-                logger.error(f'Error: {e}')
-                logger.error(f'For iteration {i} and url: {url}')
+        with futures.ThreadPoolExecutor(max_workers=self.n_workers) as executor:
 
-        return checksums
+            future_to_url = dict(
+                (executor.submit(self.download_image, url, force), url)
+                for url in urls
+            )
+
+            paths = {}
+            for future in tqdm(futures.as_completed(future_to_url), total=len(urls), miniters=1):
+                url = future_to_url[future]
+                if future.exception() is not None:
+                    logger.error(f'Error: {future.exception()}')
+                    logger.error(f'For url: {url}')
+                    paths[url] = None
+                else:
+                    paths[url] = future.result()
+        return paths
 
     def download_image(self, url, force=False):
         """Download image, create thumbnails, store and return checksum.
@@ -284,35 +299,15 @@ def download(iterator,
     """
     downloader = ImageDownloader(
         store_path,
+        n_workers=n_workers,
         thumbs=thumbs,
         thumbs_size=thumbs_size,
         timeout=timeout,
         min_wait=min_wait,
         max_wait=max_wait,
         proxies=proxies,
-        headers=headers
+        headers=headers,
+        notebook=notebook
     )
 
-    if notebook:
-        from tqdm import tqdm_notebook as tqdm
-    else:
-        from tqdm import tqdm
-
-    with futures.ThreadPoolExecutor(max_workers=n_workers) as executor:
-
-        future_to_url = dict(
-            (executor.submit(downloader, url, force), url)
-            for url in iterator
-        )
-
-        results = {}
-        for future in tqdm(futures.as_completed(future_to_url), total=len(iterator), miniters=1):
-            url = future_to_url[future]
-            if future.exception() is not None:
-                logger.error(f'Error: {future.exception()}')
-                logger.error(f'For url: {url}')
-                results[url] = None
-            else:
-                results[url] = future.result()
-
-    return results
+    return downloader(iterator, force=force)
