@@ -22,7 +22,7 @@ def test_download():
     from pprint import pprint
     pprint(config)
 
-    results = download(
+    paths = download(
         images['url'],
         store_path=config['STORE_PATH'],
         thumbs=config['THUMBS'],
@@ -38,9 +38,8 @@ def test_download():
     )
 
     downloaded = len([
-        response
-        for url, response in results.items()
-        if response is not None
+        path for path in paths
+        if path is not None
     ])
 
     subdirs = ['.']
@@ -56,5 +55,9 @@ def test_download():
         assert nb_images == downloaded, \
             f"Image directory {subdir_path} should contain {downloaded} " \
             f"images after download, but has {nb_images}"
+
+    for path in paths:
+        if path is not None:
+            assert Path(path).exists(), f"{path} does not exist"
 
     store_path.cleanup()
