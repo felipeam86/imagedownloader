@@ -11,6 +11,7 @@ import pandas as pd
 
 images_file = Path(__file__).parent / 'wikimedia.csv'
 
+
 def test_download():
 
     images = pd.read_csv(str(images_file), names=['url'])
