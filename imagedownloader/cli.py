@@ -75,54 +75,30 @@ def pprint_args_attributes(args):
     return print_args + '=' * len(title)
 
 
-def update_config_with_args(args):
-
-    config['HEADERS'].update({'User-Agent': args.user_agent})
-
-    if args.proxy is not None:
-        config['PROXIES'] = [
-            {
-                "http": proxy,
-                "https": proxy
-            }
-            for proxy in args.proxy
-        ]
-
-    if args.thumbs is not None:
-        config['THUMBS'] = True
-        config['THUMBS_SIZES'] = {
-            str(thumb): (thumb, thumb)
-            for thumb in args.thumbs
-        }
-
-    return config
-
-
 def main(args=None):
     args = parse(args)
 
     with open(args.urls, 'r') as fh:
         urls = [url.strip('\n') for url in fh.readlines()]
 
-    config = update_config_with_args(args)
+    if args.proxy is None:
+        args.proxy = config['PROXIES']
 
     if args.debug:
         print(pprint_args_attributes(args))
-        logger.debug('User-Agent: ' + config['HEADERS']['User-Agent'])
-        logger.debug('Proxies: ' + str(config['PROXIES']))
-        logger.debug('Thumbs: ' + str(config['THUMBS_SIZES']))
+        logger.debug('Proxies: ' + str(args.proxy))
 
     results = download(
         urls,
         args.store_path,
-        thumbs=config['THUMBS'],
-        thumbs_size=config['THUMBS_SIZES'],
+        thumbs=args.thumbs is not None,
+        thumbs_size=args.thumbs,
         n_workers=args.n_workers,
         timeout=args.timeout,
         min_wait=args.min_wait,
         max_wait=args.max_wait,
-        proxies=config['PROXIES'],
-        headers=config['HEADERS'],
+        proxies=args.proxy,
+        user_agent=args.user_agent,
         force=args.force,
         notebook=args.notebook,
     )

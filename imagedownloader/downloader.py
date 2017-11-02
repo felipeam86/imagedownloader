@@ -35,7 +35,7 @@ class ImageDownloader(object):
         Timeout to be given to the url request
     thumbs : bool
         If True, create thumbnails of sizes according to self.thumbs_size
-    thumbs_size : dict
+    thumbs_size : dict | list
         Dictionary of the kind {name: (width, height)} indicating the thumbnail
         sizes to be created
     min_wait : float
@@ -46,6 +46,8 @@ class ImageDownloader(object):
         Proxy or list of proxies to use for the requests
     headers : dict
         headers to be given to requests
+    user_agent : str
+        User agent to be used for the requests
     notebook : bool
         If True, use the notebook version of tqdm
     """
@@ -60,6 +62,7 @@ class ImageDownloader(object):
                  max_wait=config['MAX_WAIT'],
                  proxies=config['PROXIES'],
                  headers=config['HEADERS'],
+                 user_agent=config['USER_AGENT'],
                  notebook=False):
 
         self.store_path = Path(store_path).expanduser()
@@ -68,14 +71,36 @@ class ImageDownloader(object):
         self.max_wait = max_wait
         self.n_workers = n_workers
         self.notebook = notebook
-        self.headers = headers or config['HEADERS']
+        self.headers = headers
+        if user_agent is not None:
+            self.headers.update({'User-Agent': user_agent})
         assert (proxies is None) or isinstance(proxies, list) or isinstance(proxies, dict),\
             "proxies should be either a list or a list of dicts"
-        self.proxies = proxies
+
+        if isinstance(proxies, dict):
+            self.proxies = proxies
+        elif isinstance(thumbs_size, list):
+            self.proxies = [
+                {
+                    "http": proxy,
+                    "https": proxy
+                }
+                for proxy in proxies
+            ]
+        else:
+            self.proxies = None
+
+        thumbs_size = thumbs_size or {}
         if thumbs:
-            assert isinstance(thumbs_size, dict) or thumbs_size is None, \
-                f"thumbs_size must be a dictionary. e.g. {config['THUMBS']}"
-            self.thumbs_size = thumbs_size or config['THUMBS']
+            if isinstance(thumbs_size, dict):
+                self.thumbs_size = thumbs_size
+            elif isinstance(thumbs_size, list):
+                self.thumbs_size = {
+                    str(thumb): (thumb, thumb)
+                    for thumb in thumbs_size
+                }
+            else:
+                raise Exception(f"thumbs_size must be a dictionary or a list")
         else:
             self.thumbs_size = {}
         self._makedirs()
@@ -257,6 +282,7 @@ def download(iterator,
              max_wait=config['MAX_WAIT'],
              proxies=config['PROXIES'],
              headers=config['HEADERS'],
+             user_agent=config['USER_AGENT'],
              force=False,
              notebook=False):
     """Asynchronously download images using multiple threads.
@@ -288,6 +314,8 @@ def download(iterator,
         Proxy or list of proxies to use for the requests
     headers : dict
         headers to be given to requests
+    user_agent : str
+        User agent to be used for the requests
 
     Returns
     -------
@@ -307,6 +335,7 @@ def download(iterator,
         max_wait=max_wait,
         proxies=proxies,
         headers=headers,
+        user_agent=user_agent,
         notebook=notebook
     )
 
