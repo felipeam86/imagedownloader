@@ -4,6 +4,8 @@ from glob import glob
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+import pytest
+
 from imagedownloader.settings import config
 from imagedownloader import download
 
@@ -63,3 +65,26 @@ def test_download():
             assert Path(path).exists(), f"{path} does not exist"
 
     store_path.cleanup()
+
+
+def test_wrong_url_on_iterable_returns_none():
+    paths = download(['http://www.fake.image_url.png'])
+    assert paths[0] is None, "If image from an iterable cannot be downloaded, " \
+                             "it should return None"
+
+
+def test_raise_exception_with_single_call_wrong_url():
+    fail_message = "Expected an exception if image cannot be downloaded on single call"
+    with pytest.raises(Exception, message=fail_message):
+        _ = download('http://www.fake.image_url.png')
+
+
+def test_call_generator():
+    def iterator():
+        yield 'http://www.fake.image_url1.png'
+        yield 'http://www.fake.image_url2.png'
+        yield 'http://www.fake.image_url3.png'
+
+    paths = download(iterator())
+
+    assert len(paths) == 3, "Expected a list of Nones of length 3"
