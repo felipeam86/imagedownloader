@@ -14,7 +14,9 @@ images_file = Path(__file__).parent / 'wikimedia.csv'
 
 def test_download():
 
-    images = pd.read_csv(str(images_file), names=['url'])
+    with images_file.open('r') as fh:
+        urls = [url.strip('\n') for url in fh.readlines()]
+
     store_path = TemporaryDirectory()
     store_path.cleanup()
     config['STORE_PATH'] = store_path.name
@@ -23,7 +25,7 @@ def test_download():
     pprint(config)
 
     paths = download(
-        images['url'],
+        urls,
         store_path=config['STORE_PATH'],
         thumbs=config['THUMBS'],
         thumbs_size=config['THUMBS_SIZES'],
