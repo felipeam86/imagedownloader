@@ -308,7 +308,7 @@ def download(iterator,
     timeout : float
         Timeout to be given to the url request
     thumbs : bool
-        If True, create thumbnails of sizes according to self.thumbs_size
+        If True, create thumbnails of sizes according to thumbs_size
     thumbs_size : dict
         Dictionary of the kind {name: (width, height)} indicating the thumbnail
         sizes to be created
