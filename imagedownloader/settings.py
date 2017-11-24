@@ -6,8 +6,7 @@ from multiprocessing import cpu_count
 import yaml
 import requests
 
-from .__about__ import __title__ as package_name
-
+PACKAGE_NAME = "imagedownloader"
 
 config = {
     'STORE_PATH': str(Path('~', '.witdatasets', 'imagedownloader').expanduser()),
@@ -39,5 +38,5 @@ extra_config_files = [
 for config_file in extra_config_files:
     if config_file.exists():
         extra_config = yaml.load(config_file.open())
-        if package_name in extra_config:
-            config.update(extra_config[package_name])
+        if PACKAGE_NAME in extra_config:
+            config.update(extra_config[PACKAGE_NAME])
