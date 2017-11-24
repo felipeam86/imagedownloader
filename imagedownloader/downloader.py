@@ -5,13 +5,14 @@ import collections
 import hashlib
 import logging
 import random
+import types
 from concurrent import futures
 from time import sleep
 from pathlib import Path
 from io import BytesIO
 
 from .settings import config
-from .utils import md5sum, to_bytes
+from .utils import to_bytes
 
 from PIL import Image
 import requests
@@ -159,7 +160,12 @@ class ImageDownloader(object):
             )
 
             paths = {}
-            for future in tqdm(futures.as_completed(future_to_url), total=len(urls), miniters=1):
+            if isinstance(urls, types.GeneratorType):
+                total = None
+            else:
+                total = len(urls)
+
+            for future in tqdm(futures.as_completed(future_to_url), total=total, miniters=1):
                 url = future_to_url[future]
                 if future.exception() is not None:
                     logger.error(f'Error: {future.exception()}')
@@ -340,4 +346,11 @@ def download(iterator,
     )
 
     results = downloader(iterator, force=force)
-    return [str(results[url]) for url in iterator]
+
+    paths = [
+        str(response)
+        if response is not None else None
+        for url, response in results.items()
+    ]
+
+    return paths
