@@ -278,7 +278,7 @@ class ImageDownloader(object):
         return Path(self.store_path, 'thumbs', thumb_id, thumb_guid + '.jpg')
 
 
-def download(iterator,
+def download(urls,
              store_path=config['STORE_PATH'],
              thumbs=config['THUMBS'],
              thumbs_size=config['THUMBS_SIZES'],
@@ -295,7 +295,7 @@ def download(iterator,
 
     Parameters
     ----------
-    iterator : iterator
+    urls : iterator
         Iterator of urls
     store_path : str
         Root path where images should be stored
@@ -345,12 +345,12 @@ def download(iterator,
         notebook=notebook
     )
 
-    results = downloader(iterator, force=force)
+    results = downloader(urls, force=force)
 
     paths = [
-        str(response)
-        if response is not None else None
-        for url, response in results.items()
+        str(results[url])
+        if results[url] is not None else None
+        for url in urls
     ]
 
     return paths
