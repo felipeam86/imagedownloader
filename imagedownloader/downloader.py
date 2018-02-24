@@ -7,19 +7,21 @@ import logging
 import random
 import types
 from concurrent import futures
-from time import sleep
-from pathlib import Path
 from io import BytesIO
+from pathlib import Path
+from time import sleep
+
+import attr
+import requests
+from PIL import Image
 
 from .settings import config
 from .utils import to_bytes
 
-from PIL import Image
-import requests
-
 logger = logging.getLogger(__name__)
 
 
+@attr.s
 class ImageDownloader(object):
     """Image downloader that converts to common format and creates thumbs.
 
@@ -53,52 +55,48 @@ class ImageDownloader(object):
         If True, use the notebook version of tqdm
     """
 
-    def __init__(self,
-                 store_path=config['STORE_PATH'],
-                 n_workers=config['N_WORKERS'],
-                 thumbs=config['THUMBS'],
-                 thumbs_size=config['THUMBS_SIZES'],
-                 timeout=config['TIMEOUT'],
-                 min_wait=config['MIN_WAIT'],
-                 max_wait=config['MAX_WAIT'],
-                 proxies=config['PROXIES'],
-                 headers=config['HEADERS'],
-                 user_agent=config['USER_AGENT'],
-                 notebook=False):
+    store_path = attr.ib(converter=lambda v: Path(v).expanduser(), default=config['STORE_PATH'])
+    n_workers = attr.ib(converter=int, default=config['N_WORKERS'])
+    thumbs = attr.ib(converter=bool, default=config['THUMBS'])
+    thumbs_size = attr.ib(default=config['THUMBS_SIZES'])
+    timeout = attr.ib(converter=float, default=config['TIMEOUT'])
+    min_wait = attr.ib(converter=float, default=config['MIN_WAIT'])
+    max_wait = attr.ib(converter=float, default=config['MAX_WAIT'])
+    proxies = attr.ib(default=config['PROXIES'])
+    headers = attr.ib(converter=dict, default=config['HEADERS'])
+    user_agent = attr.ib(converter=str, default=config['USER_AGENT'])
+    notebook = attr.ib(converter=bool, default=False)
 
-        self.store_path = Path(store_path).expanduser()
-        self.timeout = timeout
-        self.min_wait = min_wait
-        self.max_wait = max_wait
-        self.n_workers = n_workers
-        self.notebook = notebook
-        self.headers = headers
-        if user_agent is not None:
-            self.headers.update({'User-Agent': user_agent})
-        assert (proxies is None) or isinstance(proxies, list) or isinstance(proxies, dict),\
+
+    def __attrs_post_init__(self):
+
+        if self.user_agent is not None:
+            self.headers.update({'User-Agent': self.user_agent})
+
+        assert (self.proxies is None) or isinstance(self.proxies, list) or isinstance(self.proxies, dict),\
             "proxies should be either a list or a list of dicts"
 
-        if isinstance(proxies, dict):
-            self.proxies = proxies
-        elif isinstance(thumbs_size, list):
+        if isinstance(self.proxies, dict):
+            self.proxies = self.proxies
+        elif isinstance(self.proxies, list):
             self.proxies = [
                 {
                     "http": proxy,
                     "https": proxy
                 }
-                for proxy in proxies
+                for proxy in self.proxies
             ]
         else:
             self.proxies = None
 
-        thumbs_size = thumbs_size or {}
-        if thumbs:
-            if isinstance(thumbs_size, dict):
-                self.thumbs_size = thumbs_size
-            elif isinstance(thumbs_size, list):
+            self.thumbs_size = self.thumbs_size or {}
+        if self.thumbs:
+            if isinstance(self.thumbs_size, dict):
+                self.thumbs_size = self.thumbs_size
+            elif isinstance(self.thumbs_size, list):
                 self.thumbs_size = {
                     str(thumb): (thumb, thumb)
-                    for thumb in thumbs_size
+                    for thumb in self.thumbs_size
                 }
             else:
                 raise Exception(f"thumbs_size must be a dictionary or a list")
