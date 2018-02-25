@@ -45,7 +45,7 @@ class ImageDownloader(object):
         Minimum wait time between image downloads
     max_wait : float
         Maximum wait time between image downloads
-    proxies : list | dict
+    proxies : str | list
         Proxy or list of proxies to use for the requests
     headers : dict
         headers to be given to requests
@@ -74,23 +74,20 @@ class ImageDownloader(object):
 
     @proxies.validator
     def resolve_proxies(self, attribute, value):
-        if isinstance(value, dict):
-            self.proxies = value
-        elif isinstance(value, list):
-            if len(value) > 0:
-                self.proxies = [
-                    {
-                        "http": proxy,
-                        "https": proxy
-                    }
-                    for proxy in value
-                ]
-            else:
-                self.proxies = None
-        elif value is None:
-            self.proxies = None
-        else:
-            raise ValueError("proxies should be either a list or a list of dicts")
+
+        def format_as_dict(proxy):
+            return {
+                "http": proxy,
+                "https": proxy
+            }
+
+        self.proxies = None
+        if isinstance(value, str):
+            self.proxies = [format_as_dict(value)]
+        elif isinstance(value, list) and len(value) > 0:
+            self.proxies = [format_as_dict(proxy) for proxy in value]
+        elif value is not None:
+            raise ValueError("proxies should be either a string, a list of strings or None")
 
     @thumbs_size.validator
     def resolve_thumbs_size(self, attribute, value):
