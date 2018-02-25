@@ -7,19 +7,22 @@ import logging
 import random
 import types
 from concurrent import futures
-from time import sleep
-from pathlib import Path
 from io import BytesIO
+from pathlib import Path
+from time import sleep
+
+import attr
+import requests
+from PIL import Image
+from tqdm import tqdm, tqdm_notebook
 
 from .settings import config
 from .utils import to_bytes
 
-from PIL import Image
-import requests
-
 logger = logging.getLogger(__name__)
 
 
+@attr.s
 class ImageDownloader(object):
     """Image downloader that converts to common format and creates thumbs.
 
@@ -43,7 +46,7 @@ class ImageDownloader(object):
         Minimum wait time between image downloads
     max_wait : float
         Maximum wait time between image downloads
-    proxies : list | dict
+    proxies : str | list
         Proxy or list of proxies to use for the requests
     headers : dict
         headers to be given to requests
@@ -51,59 +54,77 @@ class ImageDownloader(object):
         User agent to be used for the requests
     notebook : bool
         If True, use the notebook version of tqdm
+    debug : bool
+        If True, log urls that could not be downloaded
     """
 
-    def __init__(self,
-                 store_path=config['STORE_PATH'],
-                 n_workers=config['N_WORKERS'],
-                 thumbs=config['THUMBS'],
-                 thumbs_size=config['THUMBS_SIZES'],
-                 timeout=config['TIMEOUT'],
-                 min_wait=config['MIN_WAIT'],
-                 max_wait=config['MAX_WAIT'],
-                 proxies=config['PROXIES'],
-                 headers=config['HEADERS'],
-                 user_agent=config['USER_AGENT'],
-                 notebook=False):
+    store_path = attr.ib(converter=lambda v: Path(v).expanduser(), default=config['STORE_PATH'])
+    n_workers = attr.ib(converter=int, default=config['N_WORKERS'])
+    timeout = attr.ib(converter=float, default=config['TIMEOUT'])
+    thumbs = attr.ib(converter=bool, default=config['THUMBS'])
+    thumbs_size = attr.ib(default=config['THUMBS_SIZES'])
+    min_wait = attr.ib(converter=float, default=config['MIN_WAIT'])
+    max_wait = attr.ib(converter=float, default=config['MAX_WAIT'])
+    proxies = attr.ib(default=config['PROXIES'])
+    headers = attr.ib(converter=dict, default=config['HEADERS'])
+    user_agent = attr.ib(converter=str, default=config['USER_AGENT'])
+    notebook = attr.ib(converter=bool, default=False)
+    debug = attr.ib(converter=bool, default=False)
 
-        self.store_path = Path(store_path).expanduser()
-        self.timeout = timeout
-        self.min_wait = min_wait
-        self.max_wait = max_wait
-        self.n_workers = n_workers
-        self.notebook = notebook
-        self.headers = headers
-        if user_agent is not None:
-            self.headers.update({'User-Agent': user_agent})
-        assert (proxies is None) or isinstance(proxies, list) or isinstance(proxies, dict),\
-            "proxies should be either a list or a list of dicts"
+    @user_agent.validator
+    def update_headers(self, attribute, value):
+        if value is not None:
+            self.headers.update({'User-Agent': value})
 
-        if isinstance(proxies, dict):
-            self.proxies = proxies
-        elif isinstance(thumbs_size, list):
-            self.proxies = [
-                {
-                    "http": proxy,
-                    "https": proxy
-                }
-                for proxy in proxies
-            ]
-        else:
-            self.proxies = None
+    @proxies.validator
+    def resolve_proxies(self, attribute, value):
 
-        thumbs_size = thumbs_size or {}
-        if thumbs:
+        def format_as_dict(proxy):
+            return {
+                "http": proxy,
+                "https": proxy
+            }
+
+        self.proxies = None
+        if isinstance(value, str):
+            self.proxies = [format_as_dict(value)]
+        elif isinstance(value, list) and len(value) > 0:
+            self.proxies = [format_as_dict(proxy) for proxy in value]
+        elif value is not None:
+            raise ValueError("proxies should be either a string, a list of strings or None")
+
+    @thumbs_size.validator
+    def resolve_thumbs_size(self, attribute, value):
+        thumbs_size = value or {}
+        if self.thumbs:
             if isinstance(thumbs_size, dict):
+                for k, v in thumbs_size.items():
+                    if not (isinstance(v, (tuple, list)) and
+                            (len(v) == 2) and
+                            isinstance(v[0], int) and
+                            isinstance(v[1], int)):
+
+                        raise ValueError(f"Wrong type of thumbs_size for key '{k}' --> '{v}'"
+                                         f" should be a tuple of ints of size 2")
                 self.thumbs_size = thumbs_size
             elif isinstance(thumbs_size, list):
+                for v in thumbs_size:
+                    if not isinstance(v, int):
+                        raise ValueError(f"Wrong type for thumbs_size '{v}' --> should be an int")
                 self.thumbs_size = {
                     str(thumb): (thumb, thumb)
                     for thumb in thumbs_size
                 }
             else:
-                raise Exception(f"thumbs_size must be a dictionary or a list")
+                raise Exception("thumbs_size must be a dictionary or a list")
         else:
             self.thumbs_size = {}
+
+    @notebook.validator
+    def set_tqdm(self, attribute, value):
+        self.tqdm = tqdm_notebook if value else tqdm
+
+    def __attrs_post_init__(self):
         self._makedirs()
 
     def get_proxy(self):
@@ -141,38 +162,29 @@ class ImageDownloader(object):
             image path
         """
 
+        if not isinstance(urls, (str, collections.Iterable)):
+            raise ValueError("urls should be str or iterable")
+
         if isinstance(urls, str):
             return self.download_image(urls, force=force)
 
-        assert isinstance(urls, collections.Iterable), \
-            "urls should be str or iterable"
-
-        if self.notebook:
-            from tqdm import tqdm_notebook as tqdm
-        else:
-            from tqdm import tqdm
-
         with futures.ThreadPoolExecutor(max_workers=self.n_workers) as executor:
-
-            future_to_url = dict(
-                (executor.submit(self.download_image, url, force), url)
-                for url in urls
-            )
-
+            n_fail = 0
             paths = {}
-            if isinstance(urls, types.GeneratorType):
-                total = None
-            else:
-                total = len(urls)
-
-            for future in tqdm(futures.as_completed(future_to_url), total=total, miniters=1):
+            future_to_url = {executor.submit(self.download_image, url, force): url for url in urls}
+            for future in self.tqdm(futures.as_completed(future_to_url), total=len(future_to_url), miniters=1):
                 url = future_to_url[future]
-                if future.exception() is not None:
-                    logger.error(f'Error: {future.exception()}')
-                    logger.error(f'For url: {url}')
-                    paths[url] = None
-                else:
+                if future.exception() is None:
                     paths[url] = future.result()
+                else:
+                    paths[url] = None
+                    n_fail += 1
+                    if self.debug:
+                        logger.error(f'Error: {future.exception()}')
+                        logger.error(f'For url: {url}')
+
+            logger.info(f"{n_fail} images failed to download")
+
         return paths
 
     def download_image(self, url, force=False):
@@ -280,17 +292,18 @@ class ImageDownloader(object):
 
 def download(urls,
              store_path=config['STORE_PATH'],
-             thumbs=config['THUMBS'],
-             thumbs_size=config['THUMBS_SIZES'],
              n_workers=config['N_WORKERS'],
              timeout=config['TIMEOUT'],
+             thumbs=config['THUMBS'],
+             thumbs_size=config['THUMBS_SIZES'],
              min_wait=config['MIN_WAIT'],
              max_wait=config['MAX_WAIT'],
              proxies=config['PROXIES'],
              headers=config['HEADERS'],
              user_agent=config['USER_AGENT'],
-             force=False,
-             notebook=False):
+             notebook=False,
+             debug=False,
+             force=False):
     """Asynchronously download images using multiple threads.
 
     Parameters
@@ -301,10 +314,6 @@ def download(urls,
         Root path where images should be stored
     n_workers : int
         Number of simultaneous threads to use
-    force : bool
-        If True force the download even if the files already exists
-    notebook : bool
-        If True, use the notebook version of tqdm
     timeout : float
         Timeout to be given to the url request
     thumbs : bool
@@ -322,6 +331,12 @@ def download(urls,
         headers to be given to requests
     user_agent : str
         User agent to be used for the requests
+    notebook : bool
+        If True, use the notebook version of tqdm
+    debug : bool
+        If True, log urls that could not be downloaded
+    force : bool
+        If True force the download even if the files already exists
 
     Returns
     -------
@@ -342,7 +357,8 @@ def download(urls,
         proxies=proxies,
         headers=headers,
         user_agent=user_agent,
-        notebook=notebook
+        notebook=notebook,
+        debug=debug
     )
 
     results = downloader(urls, force=force)

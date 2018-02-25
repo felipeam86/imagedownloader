@@ -9,8 +9,6 @@ import pytest
 from imagedownloader.settings import config
 from imagedownloader import download
 
-import pandas as pd
-
 images_file = Path(__file__).parent / 'wikimedia.csv'
 
 
@@ -21,22 +19,11 @@ def test_download():
 
     store_path = TemporaryDirectory()
     store_path.cleanup()
-    config['STORE_PATH'] = store_path.name
-
-    from pprint import pprint
-    pprint(config)
 
     paths = download(
         urls,
-        store_path=config['STORE_PATH'],
-        thumbs=config['THUMBS'],
-        thumbs_size=config['THUMBS_SIZES'],
-        n_workers=config['N_WORKERS'],
-        timeout=config['TIMEOUT'],
-        min_wait=config['MIN_WAIT'],
-        max_wait=config['MAX_WAIT'],
-        proxies=config['PROXIES'],
-        headers=config['HEADERS'],
+        store_path=store_path.name,
+        thumbs=True,
         force=False,
         notebook=False,
     )
@@ -52,7 +39,7 @@ def test_download():
     print(subdirs)
 
     for subdir in subdirs:
-        subdir_path = Path(config['STORE_PATH'], subdir)
+        subdir_path = Path(store_path.name, subdir)
         assert subdir_path.exists(), \
             f"Image directory {subdir_path} should exist after download"
         nb_images = len(glob(str(subdir_path / '*.jpg')))
@@ -73,7 +60,7 @@ def test_wrong_url_on_iterable_returns_none():
                              "it should return None"
 
 
-def test_raise_exception_with_single_call_wrong_url():
+def test_wrong_url_with_single_call_raise_exception():
     fail_message = "Expected an exception if image cannot be downloaded on single call"
     with pytest.raises(Exception, message=fail_message):
         _ = download('http://www.fake.image_url.png')
