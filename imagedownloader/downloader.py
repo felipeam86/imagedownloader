@@ -170,14 +170,17 @@ class ImageDownloader(object):
 
         with futures.ThreadPoolExecutor(max_workers=self.n_workers) as executor:
             n_fail = 0
-            paths = {}
-            future_to_url = {executor.submit(self.download_image, url, force): url for url in urls}
-            for future in self.tqdm(futures.as_completed(future_to_url), total=len(future_to_url), miniters=1):
-                url = future_to_url[future]
+            future_to_url = {
+                executor.submit(self.download_image, url, force): (i, url)
+                for i, url in enumerate(urls)
+            }
+            total = len(future_to_url)
+            paths = [None] * total
+            for future in self.tqdm(futures.as_completed(future_to_url), total=total, miniters=1):
+                i, url = future_to_url[future]
                 if future.exception() is None:
-                    paths[url] = future.result()
+                    paths[i] = str(future.result())
                 else:
-                    paths[url] = None
                     n_fail += 1
                     if self.debug:
                         logger.error(f'Error: {future.exception()}')
@@ -361,12 +364,4 @@ def download(urls,
         debug=debug
     )
 
-    results = downloader(urls, force=force)
-
-    paths = [
-        str(results[url])
-        if results[url] is not None else None
-        for url in urls
-    ]
-
-    return paths
+    return downloader(urls, force=force)
