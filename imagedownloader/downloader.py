@@ -14,6 +14,7 @@ from time import sleep
 import attr
 import requests
 from PIL import Image
+from tqdm import tqdm, tqdm_notebook
 
 from .settings import config
 from .utils import to_bytes
@@ -53,13 +54,15 @@ class ImageDownloader(object):
         User agent to be used for the requests
     notebook : bool
         If True, use the notebook version of tqdm
+    debug : bool
+        If True, log urls that could not be downloaded
     """
 
     store_path = attr.ib(converter=lambda v: Path(v).expanduser(), default=config['STORE_PATH'])
     n_workers = attr.ib(converter=int, default=config['N_WORKERS'])
+    timeout = attr.ib(converter=float, default=config['TIMEOUT'])
     thumbs = attr.ib(converter=bool, default=config['THUMBS'])
     thumbs_size = attr.ib(default=config['THUMBS_SIZES'])
-    timeout = attr.ib(converter=float, default=config['TIMEOUT'])
     min_wait = attr.ib(converter=float, default=config['MIN_WAIT'])
     max_wait = attr.ib(converter=float, default=config['MAX_WAIT'])
     proxies = attr.ib(default=config['PROXIES'])
@@ -117,6 +120,10 @@ class ImageDownloader(object):
         else:
             self.thumbs_size = {}
 
+    @notebook.validator
+    def set_tqdm(self, attribute, value):
+        self.tqdm = tqdm_notebook if value else tqdm
+
     def __attrs_post_init__(self):
         self._makedirs()
 
@@ -155,37 +162,20 @@ class ImageDownloader(object):
             image path
         """
 
+        if not isinstance(urls, (str, collections.Iterable)):
+            raise ValueError("urls should be str or iterable")
+
         if isinstance(urls, str):
             return self.download_image(urls, force=force)
 
-        assert isinstance(urls, collections.Iterable), \
-            "urls should be str or iterable"
-
-        if self.notebook:
-            from tqdm import tqdm_notebook as tqdm
-        else:
-            from tqdm import tqdm
-
         with futures.ThreadPoolExecutor(max_workers=self.n_workers) as executor:
-
-            future_to_url = dict(
-                (executor.submit(self.download_image, url, force), url)
-                for url in urls
-            )
-
-            paths = {}
-            if isinstance(urls, types.GeneratorType):
-                total = None
-            else:
-                total = len(urls)
-
-            n_succes = 0
             n_fail = 0
-            for future in tqdm(futures.as_completed(future_to_url), total=total, miniters=1):
+            paths = {}
+            future_to_url = {executor.submit(self.download_image, url, force): url for url in urls}
+            for future in self.tqdm(futures.as_completed(future_to_url), total=len(future_to_url), miniters=1):
                 url = future_to_url[future]
                 if future.exception() is None:
                     paths[url] = future.result()
-                    n_succes += 1
                 else:
                     paths[url] = None
                     n_fail += 1
@@ -302,18 +292,18 @@ class ImageDownloader(object):
 
 def download(urls,
              store_path=config['STORE_PATH'],
-             thumbs=config['THUMBS'],
-             thumbs_size=config['THUMBS_SIZES'],
              n_workers=config['N_WORKERS'],
              timeout=config['TIMEOUT'],
+             thumbs=config['THUMBS'],
+             thumbs_size=config['THUMBS_SIZES'],
              min_wait=config['MIN_WAIT'],
              max_wait=config['MAX_WAIT'],
              proxies=config['PROXIES'],
              headers=config['HEADERS'],
              user_agent=config['USER_AGENT'],
-             force=False,
              notebook=False,
-             debug=False):
+             debug=False,
+             force=False):
     """Asynchronously download images using multiple threads.
 
     Parameters
@@ -324,10 +314,6 @@ def download(urls,
         Root path where images should be stored
     n_workers : int
         Number of simultaneous threads to use
-    force : bool
-        If True force the download even if the files already exists
-    notebook : bool
-        If True, use the notebook version of tqdm
     timeout : float
         Timeout to be given to the url request
     thumbs : bool
@@ -345,6 +331,12 @@ def download(urls,
         headers to be given to requests
     user_agent : str
         User agent to be used for the requests
+    notebook : bool
+        If True, use the notebook version of tqdm
+    debug : bool
+        If True, log urls that could not be downloaded
+    force : bool
+        If True force the download even if the files already exists
 
     Returns
     -------
