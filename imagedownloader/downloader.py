@@ -166,7 +166,7 @@ class ImageDownloader(object):
             raise ValueError("urls should be str or iterable")
 
         if isinstance(urls, str):
-            return self.download_image(urls, force=force)
+            return str(self.download_image(urls, force=force))
 
         with futures.ThreadPoolExecutor(max_workers=self.n_workers) as executor:
             n_fail = 0
