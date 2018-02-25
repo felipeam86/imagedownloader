@@ -1,44 +1,29 @@
 # -*- coding: utf-8 -*-
 
-from glob import glob
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import pytest
 
-from imagedownloader.settings import config
-from imagedownloader import download
-
-import pandas as pd
+from imgdl.settings import config
+from imgdl import download
 
 images_file = Path(__file__).parent / 'wikimedia.csv'
 
 
 def test_download():
 
-    with images_file.open('r') as fh:
-        urls = [url.strip('\n') for url in fh.readlines()]
-
+    urls = images_file.read_text().strip().split()
     store_path = TemporaryDirectory()
     store_path.cleanup()
-    config['STORE_PATH'] = store_path.name
-
-    from pprint import pprint
-    pprint(config)
 
     paths = download(
         urls,
-        store_path=config['STORE_PATH'],
-        thumbs=config['THUMBS'],
-        thumbs_size=config['THUMBS_SIZES'],
-        n_workers=config['N_WORKERS'],
-        timeout=config['TIMEOUT'],
-        min_wait=config['MIN_WAIT'],
-        max_wait=config['MAX_WAIT'],
-        proxies=config['PROXIES'],
-        headers=config['HEADERS'],
+        store_path=store_path.name,
+        thumbs=True,
         force=False,
         notebook=False,
+        debug=True,
     )
 
     downloaded = len([
@@ -46,16 +31,14 @@ def test_download():
         if path is not None
     ])
 
-    subdirs = ['.']
+    subdirs = [Path(store_path.name)]
     for thumb_id, size in config['THUMBS_SIZES'].items():
-        subdirs += [f'thumbs/{thumb_id}']
-    print(subdirs)
+        subdirs += [Path(store_path.name, 'thumbs', thumb_id)]
 
-    for subdir in subdirs:
-        subdir_path = Path(config['STORE_PATH'], subdir)
+    for subdir_path in subdirs:
         assert subdir_path.exists(), \
             f"Image directory {subdir_path} should exist after download"
-        nb_images = len(glob(str(subdir_path / '*.jpg')))
+        nb_images = len(list(subdir_path.glob('*.jpg')))
         assert nb_images == downloaded, \
             f"Image directory {subdir_path} should contain {downloaded} " \
             f"images after download, but has {nb_images}"
@@ -73,7 +56,7 @@ def test_wrong_url_on_iterable_returns_none():
                              "it should return None"
 
 
-def test_raise_exception_with_single_call_wrong_url():
+def test_wrong_url_with_single_call_raise_exception():
     fail_message = "Expected an exception if image cannot be downloaded on single call"
     with pytest.raises(Exception, message=fail_message):
         _ = download('http://www.fake.image_url.png')

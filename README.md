@@ -1,4 +1,4 @@
-# imagedownloader
+# imgdl
 
 Python package for downloading a collection of images from a list of
 urls. It comes with the following features:
@@ -23,7 +23,7 @@ pip install .
 Here is a simple example  using the default configurations:
 
 ```python
-from imagedownloader import download
+from imgdl import download
 
 urls = [
     'https://upload.wikimedia.org/wikipedia/commons/9/92/Moh_%283%29.jpg'
@@ -81,7 +81,7 @@ optional arguments:
   -h, --help            show this help message and exit
   -o STORE_PATH, --store_path STORE_PATH
                         Root path where images should be stored (default:
-                        ~/.witdatasets/imagedownloader)
+                        ~/.datasets/imgdl)
   --thumbs THUMBS       Thumbnail size to be created. Can be specified as many
                         times as thumbs sizes you want (default: None)
   --n_workers N_WORKERS

@@ -1,4 +1,4 @@
-imagedownloader:
+imgdl:
   MAX_WAIT: 0.0
   MIN_WAIT: 0.0
   N_WORKERS: 50

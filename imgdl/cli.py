@@ -6,6 +6,7 @@ CLI for image downloader
 """
 
 import argparse
+from pathlib import Path
 
 from . import logger, download
 from .settings import config
@@ -78,8 +79,7 @@ def pprint_args_attributes(args):
 def main(args=None):
     args = parse(args)
 
-    with open(args.urls, 'r') as fh:
-        urls = [url.strip('\n') for url in fh.readlines()]
+    urls = Path(args.urls).read_text().strip().split()
 
     if args.proxy is None:
         args.proxy = config['PROXIES']
@@ -88,25 +88,25 @@ def main(args=None):
         print(pprint_args_attributes(args))
         logger.debug('Proxies: ' + str(args.proxy))
 
-    results = download(
+    paths = download(
         urls,
         args.store_path,
-        thumbs=args.thumbs is not None,
-        thumbs_size=args.thumbs,
         n_workers=args.n_workers,
         timeout=args.timeout,
+        thumbs=args.thumbs is not None,
+        thumbs_size=args.thumbs,
         min_wait=args.min_wait,
         max_wait=args.max_wait,
         proxies=args.proxy,
         user_agent=args.user_agent,
-        force=args.force,
         notebook=args.notebook,
+        debug=args.debug,
+        force=args.force,
     )
 
     downloaded_imgs = len([
-        response
-        for url, response in results.items()
-        if response is not None
+        path for path in paths
+        if path is not None
     ])
 
     logger.debug(
