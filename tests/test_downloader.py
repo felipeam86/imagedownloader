@@ -29,7 +29,7 @@ def test_download():
     paths = download(
         urls,
         store_path=config['STORE_PATH'],
-        thumbs=config['THUMBS'],
+        thumbs=True,
         thumbs_size=config['THUMBS_SIZES'],
         n_workers=config['N_WORKERS'],
         timeout=config['TIMEOUT'],
