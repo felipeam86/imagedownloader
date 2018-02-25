@@ -67,41 +67,59 @@ class ImageDownloader(object):
     user_agent = attr.ib(converter=str, default=config['USER_AGENT'])
     notebook = attr.ib(converter=bool, default=False)
 
+    @user_agent.validator
+    def update_headers(self, attribute, value):
+        if value is not None:
+            self.headers.update({'User-Agent': value})
 
-    def __attrs_post_init__(self):
-
-        if self.user_agent is not None:
-            self.headers.update({'User-Agent': self.user_agent})
-
-        assert (self.proxies is None) or isinstance(self.proxies, list) or isinstance(self.proxies, dict),\
-            "proxies should be either a list or a list of dicts"
-
-        if isinstance(self.proxies, dict):
-            self.proxies = self.proxies
-        elif isinstance(self.proxies, list):
-            self.proxies = [
-                {
-                    "http": proxy,
-                    "https": proxy
-                }
-                for proxy in self.proxies
-            ]
-        else:
+    @proxies.validator
+    def resolve_proxies(self, attribute, value):
+        if isinstance(value, dict):
+            self.proxies = value
+        elif isinstance(value, list):
+            if len(value) > 0:
+                self.proxies = [
+                    {
+                        "http": proxy,
+                        "https": proxy
+                    }
+                    for proxy in value
+                ]
+            else:
+                self.proxies = None
+        elif value is None:
             self.proxies = None
+        else:
+            raise ValueError("proxies should be either a list or a list of dicts")
 
-            self.thumbs_size = self.thumbs_size or {}
+    @thumbs_size.validator
+    def resolve_thumbs_size(self, attribute, value):
+        thumbs_size = value or {}
         if self.thumbs:
-            if isinstance(self.thumbs_size, dict):
-                self.thumbs_size = self.thumbs_size
-            elif isinstance(self.thumbs_size, list):
+            if isinstance(thumbs_size, dict):
+                for k, v in thumbs_size.items():
+                    if not (isinstance(v, tuple) and
+                            (len(v) == 2) and
+                            isinstance(v[0], int) and
+                            isinstance(v[1], int)):
+
+                        raise ValueError(f"Wrong type of thumbs_size for key '{k}' --> '{v}'"
+                                         f" should be a tuple of ints of size 2")
+                self.thumbs_size = thumbs_size
+            elif isinstance(thumbs_size, list):
+                for v in thumbs_size:
+                    if not isinstance(v, int):
+                        raise ValueError(f"Wrong type for thumbs_size '{v}' --> should be an int")
                 self.thumbs_size = {
                     str(thumb): (thumb, thumb)
-                    for thumb in self.thumbs_size
+                    for thumb in thumbs_size
                 }
             else:
-                raise Exception(f"thumbs_size must be a dictionary or a list")
+                raise Exception("thumbs_size must be a dictionary or a list")
         else:
             self.thumbs_size = {}
+
+    def __attrs_post_init__(self):
         self._makedirs()
 
     def get_proxy(self):
