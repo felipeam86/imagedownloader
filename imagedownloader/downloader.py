@@ -66,6 +66,7 @@ class ImageDownloader(object):
     headers = attr.ib(converter=dict, default=config['HEADERS'])
     user_agent = attr.ib(converter=str, default=config['USER_AGENT'])
     notebook = attr.ib(converter=bool, default=False)
+    debug = attr.ib(converter=bool, default=False)
 
     @user_agent.validator
     def update_headers(self, attribute, value):
@@ -178,14 +179,22 @@ class ImageDownloader(object):
             else:
                 total = len(urls)
 
+            n_succes = 0
+            n_fail = 0
             for future in tqdm(futures.as_completed(future_to_url), total=total, miniters=1):
                 url = future_to_url[future]
-                if future.exception() is not None:
-                    logger.error(f'Error: {future.exception()}')
-                    logger.error(f'For url: {url}')
-                    paths[url] = None
-                else:
+                if future.exception() is None:
                     paths[url] = future.result()
+                    n_succes += 1
+                else:
+                    paths[url] = None
+                    n_fail += 1
+                    if self.debug:
+                        logger.error(f'Error: {future.exception()}')
+                        logger.error(f'For url: {url}')
+
+            logger.info(f"{n_fail} images failed to download")
+
         return paths
 
     def download_image(self, url, force=False):
