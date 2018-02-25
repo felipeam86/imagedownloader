@@ -312,7 +312,8 @@ def download(urls,
              headers=config['HEADERS'],
              user_agent=config['USER_AGENT'],
              force=False,
-             notebook=False):
+             notebook=False,
+             debug=False):
     """Asynchronously download images using multiple threads.
 
     Parameters
@@ -364,7 +365,8 @@ def download(urls,
         proxies=proxies,
         headers=headers,
         user_agent=user_agent,
-        notebook=notebook
+        notebook=notebook,
+        debug=debug
     )
 
     results = downloader(urls, force=force)
