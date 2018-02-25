@@ -5,8 +5,8 @@ from tempfile import TemporaryDirectory
 
 import pytest
 
-from imagedownloader.settings import config
-from imagedownloader import download
+from imgdl.settings import config
+from imgdl import download
 
 images_file = Path(__file__).parent / 'wikimedia.csv'
 

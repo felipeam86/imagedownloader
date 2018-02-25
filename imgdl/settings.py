@@ -6,10 +6,10 @@ from multiprocessing import cpu_count
 import yaml
 import requests
 
-PACKAGE_NAME = "imagedownloader"
+PACKAGE_NAME = "imgdl"
 
 config = {
-    'STORE_PATH': str(Path('~', '.witdatasets', 'imagedownloader').expanduser()),
+    'STORE_PATH': str(Path('~', '.datasets', 'imgdl').expanduser()),
     'THUMBS': False,
     'THUMBS_SIZES': {
         'small': [50, 50],

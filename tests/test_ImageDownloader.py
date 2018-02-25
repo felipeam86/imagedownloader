@@ -5,7 +5,7 @@ from tempfile import TemporaryDirectory
 
 import pytest
 
-from imagedownloader.downloader import ImageDownloader
+from imgdl.downloader import ImageDownloader
 
 
 def test_headers_init():
