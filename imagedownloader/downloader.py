@@ -96,7 +96,7 @@ class ImageDownloader(object):
         if self.thumbs:
             if isinstance(thumbs_size, dict):
                 for k, v in thumbs_size.items():
-                    if not (isinstance(v, tuple) and
+                    if not (isinstance(v, (tuple, list)) and
                             (len(v) == 2) and
                             isinstance(v[0], int) and
                             isinstance(v[1], int)):
