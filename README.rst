@@ -4,19 +4,24 @@ imgdl
 Python package for downloading a collection of images from a list of
 urls. It comes with the following features:
 
--  Can be used as a command line utility or as a python library.
--  Converts images to JPG format + RGB mode after download.
+-  Downloads are multithreaded using ``concurrent.futures``.
+-  Relies on a persistent cache. Already downloaded images are not
+   downloaded again, unless you force ``imgdl`` to do so.
+-  Can hide requests behind proxies
+-  It can be used as a command line utility or as a python library.
+-  Normalizes images to JPG format + RGB mode after download.
 -  Generates thumbnails of varying sizes automatically.
--  Relies on ``concurrent.futures`` for dispatching downloads on
-   multiple threads.
--  Can go trough a proxy (or list of proxies) for fetching the images.
 -  Can space downloads with a random timeout drawn from an uniform
    distribution.
 
 Installation
 ============
 
-From the root project directory:
+.. code:: bash
+
+    pip install imgdl
+
+Or, from the root project directory:
 
 .. code:: bash
 
@@ -32,53 +37,71 @@ Here is a simple example using the default configurations:
     from imgdl import download
 
     urls = [
-        'https://upload.wikimedia.org/wikipedia/commons/9/92/Moh_%283%29.jpg'
-        'https://upload.wikimedia.org/wikipedia/commons/8/8b/Moh_%284%29.jpg'
+        'https://upload.wikimedia.org/wikipedia/commons/9/92/Moh_%283%29.jpg',
+        'https://upload.wikimedia.org/wikipedia/commons/8/8b/Moh_%284%29.jpg',
         'https://upload.wikimedia.org/wikipedia/commons/c/cd/Rostige_T%C3%BCr_P4RM1492.jpg'
     ]
 
-    paths = download(urls, store_path='~/.datasets/images')
+    paths = download(urls, store_path='~/.datasets/images', n_workers=50)
 
-Images will be downloaded to ``~/.datasets/images``. The function
-returns the list of paths to each image. Here is the complete list of
-parameters taken by ``download``:
+``100%|███████████████████████████████████| 3/3 [00:08<00:00,  2.68s/it]``
+
+Images will be downloaded to ``~/.datasets/images`` using 50 threads.
+The function returns the list of paths to each image. Paths are
+constructed as ``{store_data}/{SHA1-hash(url).jpg}``. If for any reason a
+download fails, ``imgdl`` returns a ``None`` as path.
+
+Notice that if you invoke ``download`` again with the same urls, it
+will not download them again as it will check first that they are
+already downloaded.
+
+.. code:: python
+
+    paths = download(urls, store_path='~/.datasets/images', n_workers=50)
+
+``100%|████████████████████████████████| 3/3 [00:00<00:00, 24576.00it/s]``
+
+Download was instantaneous! and ``imgdl`` is clever enough to return
+the image paths.
+
+Here is the complete list of parameters taken by ``download``:
 
 -  ``iterator``: The only mandatory parameter. Usually a list of urls,
    but can be any kind of iterator.
 -  ``store_path``: Root path where images should be stored
 -  ``n_workers``: Number of simultaneous threads to use
--  ``force``: ``download`` checks first if the image already exists on
-   ``store_path`` in order to avoid double downloads. If you want to
-   force downloads, set this to True.
--  ``notebook``: If True, use the notebook version of tqdm progress bar
 -  ``timeout``: Timeout that the url request should tolerate
 -  ``thumbs``: If True, create thumbnails of sizes according to
-   self.thumbs_size
+   thumbs_size
 -  ``thumbs_size``: Dictionary of the kind {name: (width, height)}
    indicating the thumbnail sizes to be created.
 -  ``min_wait``: Minimum wait time between image downloads
 -  ``max_wait``: Maximum wait time between image downloads
 -  ``proxies``: Proxy or list of proxies to use for the requests
--  ``headers``: headers to be given to requests
+-  ``headers``: headers to be given to ``requests``
 -  ``user_agent``: User agent to be used for the requests
+-  ``notebook``: If True, use the notebook version of tqdm progress bar
+-  ``debug`` If True, ``imgdl`` logs urls that could not be downloaded
+-  ``force``: ``download`` checks first if the image already exists on
+   ``store_path`` in order to avoid double downloads. If you want to
+   force downloads, set this to True.
 
-These parameters can also be set on a ``config.yaml`` file found on the
-directory where the Python process was launched. See
+Most of these parameters can also be set on a ``config.yaml`` file found
+on the directory where the Python process was launched. See
 `config.yaml.example`_
 
 Command Line Interface
 ======================
 
-It can also be used as a command line utility with ``imgdownloader``:
+It can also be used as a command line utility:
 
 .. code:: bash
 
-    $ imgdownloader --help
-    usage: imgdownloader [-h] [-o STORE_PATH] [--thumbs THUMBS]
-                         [--n_workers N_WORKERS] [--timeout TIMEOUT]
-                         [--min_wait MIN_WAIT] [--max_wait MAX_WAIT]
-                         [--proxy PROXY] [-u USER_AGENT] [-f] [--notebook] [-d]
-                         urls
+    $ imgdl --help
+    usage: imgdl [-h] [-o STORE_PATH] [--thumbs THUMBS] [--n_workers N_WORKERS]
+                 [--timeout TIMEOUT] [--min_wait MIN_WAIT] [--max_wait MAX_WAIT]
+                 [--proxy PROXY] [-u USER_AGENT] [-f] [--notebook] [-d]
+                 urls
 
     Bulk image downloader from a list of urls
 
