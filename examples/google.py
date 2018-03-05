@@ -46,13 +46,43 @@ def scroll_down(driver, click_more_results=False):
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
 
 
-def get_urls(page_source):
+def parse_urls_from_source(page_source):
 
     soup = BeautifulSoup(page_source, "lxml")
     return [
         json.loads(rg_di.find("div", class_="rg_meta").contents[0])["ou"]
         for rg_di in soup.find_all("div", class_='rg_di')
     ]
+
+
+def get_urls(driver, n_images):
+    urls = parse_urls_from_source(driver.page_source)
+    previous_n = new_n = len(urls)
+
+    current_retries = 0
+    n_scrolls = 0
+    # Scroll down until there are enough images or unsuccessful retries exceeded maximum retries
+    while (new_n < n_images) and (current_retries < MAX_RETRIES):
+        scroll_down(
+            driver,
+            click_more_results=(new_n == previous_n) and (current_retries != 0)
+        )
+        n_scrolls += 1
+        print(f"Scrolled {n_scrolls} times already")
+        current_retries += 1
+        # Do incremental waits until more images appear
+        for i in range(4):
+            sleep(0.5 * i + 1)
+            urls = parse_urls_from_source(driver.page_source)
+            new_n = len(urls)
+            if new_n > previous_n:
+                current_retries = 0
+                print(f"{new_n} images so far")
+                break
+        previous_n = new_n
+
+    print(f"{len(urls)} images found.")
+    return urls
 
 
 def main(args):
@@ -65,32 +95,8 @@ def main(args):
     elem.send_keys(args.query)
     elem.send_keys(Keys.RETURN)
 
-    urls = get_urls(driver.page_source)
-    previous_n = new_n = len(urls)
+    urls = get_urls(driver, args.n_images)
 
-    current_retries = 0
-    n_scrolls = 0
-    # Scroll down until there are enough images or unsuccessful retries exceeded maximum retries
-    while (new_n < args.n_images) and (current_retries < MAX_RETRIES):
-        scroll_down(
-            driver,
-            click_more_results=(new_n == previous_n) and (current_retries != 0)
-        )
-        n_scrolls += 1
-        print(f"Scrolled {n_scrolls} times already")
-        current_retries += 1
-        # Do incremental waits until more images appear
-        for i in range(4):
-            sleep(0.5 * i + 1)
-            urls = get_urls(driver.page_source)
-            new_n = len(urls)
-            if new_n > previous_n:
-                current_retries = 0
-                print(f"{new_n} images so far")
-                break
-        previous_n = new_n
-
-    print(f"{len(urls)} images found.")
     store_path = args.store_path / 'google' / args.query.replace(" ", "_")
     print(f"Downloading to {store_path}")
     paths = download(
