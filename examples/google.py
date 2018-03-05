@@ -6,6 +6,7 @@ from pathlib import Path
 from time import sleep
 
 from imgdl import download
+from imgdl.settings import config
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
@@ -67,10 +68,6 @@ def main(args):
     urls = get_urls(driver.page_source)
     previous_n = new_n = len(urls)
 
-    # TODO This is not working very well yet... Find a way to know when page finished loading
-    # Se this: http://selenium-python.readthedocs.io/waits.html#implicit-waits
-    print("Scrolling down five times")
-    enough = False
     current_retries = 0
     n_scrolls = 0
     # Scroll down until there are enough images or unsuccessful retries exceeded maximum retries
@@ -94,14 +91,22 @@ def main(args):
         previous_n = new_n
 
     print(f"{len(urls)} images found.")
-    store_path = IMAGE_STORE / 'google' / args.query.replace(" ", "_")
+    store_path = args.store_path / 'google' / args.query.replace(" ", "_")
     print(f"Downloading to {store_path}")
     paths = download(
         urls,
         store_path=store_path,
-        timeout=30,
-        debug=True,
-        force=args.force
+        n_workers=args.n_workers,
+        timeout=args.timeout,
+        thumbs=args.thumbs is not None,
+        thumbs_size=args.thumbs,
+        min_wait=args.min_wait,
+        max_wait=args.max_wait,
+        proxies=args.proxy,
+        user_agent=args.user_agent,
+        notebook=args.notebook,
+        debug=args.debug,
+        force=args.force,
     )
 
     return dict(zip(urls, paths))
@@ -121,10 +126,41 @@ if __name__ == '__main__':
     parser.add_argument('-n', '--n_images', type=int, default=100,
                         help="Number of expected images to download")
 
+    parser.add_argument('--interactive', action='store_true',
+                        help="Open up chrome interactively to see the search results and scrolling action.")
+
+    parser.add_argument('-o', '--store_path', type=str, default=IMAGE_STORE,
+                        help="Root path where images should be stored")
+
+    parser.add_argument('--thumbs', type=int, action='append',
+                        help="Thumbnail size to be created. "
+                             "Can be specified as many times as thumbs sizes you want")
+
+    parser.add_argument('--n_workers', type=int, default=config['N_WORKERS'],
+                        help="Number of simultaneous threads to use")
+
+    parser.add_argument('--timeout', type=float, default=config['TIMEOUT'],
+                        help="Timeout to be given to the url request")
+
+    parser.add_argument('--min_wait', type=float, default=config['MIN_WAIT'],
+                        help="Minimum wait time between image downloads")
+
+    parser.add_argument('--max_wait', type=float, default=config['MAX_WAIT'],
+                        help="Maximum wait time between image downloads")
+
+    parser.add_argument('--proxy', type=str, action='append', default=config['PROXIES'],
+                        help="Proxy or list of proxies to use for the requests")
+
+    parser.add_argument('-u', '--user_agent', type=str, default=config['USER_AGENT'],
+                        help="User agent to be used for the requests")
+
     parser.add_argument('-f', '--force', action='store_true',
                         help="Force the download even if the files already exists")
 
-    parser.add_argument('--interactive', action='store_true',
-                        help="Open up chrome interactivelly to see the search results and scrolling action.")
+    parser.add_argument('--notebook', action='store_true',
+                        help="Use the notebook version of tqdm")
+
+    parser.add_argument('-d', '--debug', action='store_true',
+                        help="Activate debug mode")
 
     paths = main(parser.parse_args())
