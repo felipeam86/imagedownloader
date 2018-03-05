@@ -94,10 +94,11 @@ def main(args):
         previous_n = new_n
 
     print(f"{len(urls)} images found.")
-    print(f"Downloading to {IMAGE_STORE}")
+    store_path = IMAGE_STORE / 'google' / args.query.replace(" ", "_")
+    print(f"Downloading to {store_path}")
     paths = download(
         urls,
-        store_path=IMAGE_STORE,
+        store_path=store_path,
         timeout=30,
         debug=True,
         force=args.force
