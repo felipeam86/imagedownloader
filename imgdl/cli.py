@@ -8,7 +8,8 @@ CLI for image downloader
 import argparse
 from pathlib import Path
 
-from . import download, config
+from . import download
+from .settings import config
 
 __author__ = "Felipe Aguirre Martinez"
 __copyright__ = "Copyright 2017, Workit software"

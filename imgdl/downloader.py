@@ -16,7 +16,7 @@ import requests
 from PIL import Image
 from tqdm import tqdm, tqdm_notebook
 
-from . import config
+from .settings import config
 from .utils import to_bytes
 
 logger = logging.getLogger(__name__)
