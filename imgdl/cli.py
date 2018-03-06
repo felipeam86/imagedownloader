@@ -8,8 +8,7 @@ CLI for image downloader
 import argparse
 from pathlib import Path
 
-from . import logger, download
-from .settings import config
+from . import download, config
 
 __author__ = "Felipe Aguirre Martinez"
 __copyright__ = "Copyright 2017, Workit software"
@@ -44,7 +43,7 @@ def parse(args=None):
     parser.add_argument('--max_wait', type=float, default=config['MAX_WAIT'],
                         help="Maximum wait time between image downloads")
 
-    parser.add_argument('--proxy', type=str, action='append',
+    parser.add_argument('--proxy', type=str, action='append', default=config['PROXIES'],
                         help="Proxy or list of proxies to use for the requests")
 
     parser.add_argument('-u', '--user_agent', type=str, default=config['USER_AGENT'],
@@ -64,33 +63,12 @@ def parse(args=None):
     return args
 
 
-def pprint_args_attributes(args):
-    """Print arguments parsed from the CLI
-    """
-    title = '\033[92mImage downloader called with the following arguments :\033[0m'
-    print_args = '\n' + '=' * len(title) + '\n{}\n'.format(title)
-    for attr in dir(args):
-        if attr[0] != '_':
-            print_args += attr.ljust(15) + '--> ' + str(getattr(args, attr)) + '\n'
-
-    return print_args + '=' * len(title)
-
-
 def main(args=None):
     args = parse(args)
-
     urls = Path(args.urls).read_text().strip().split()
-
-    if args.proxy is None:
-        args.proxy = config['PROXIES']
-
-    if args.debug:
-        print(pprint_args_attributes(args))
-        logger.debug('Proxies: ' + str(args.proxy))
-
-    paths = download(
+    _ = download(
         urls,
-        args.store_path,
+        store_path=args.store_path,
         n_workers=args.n_workers,
         timeout=args.timeout,
         thumbs=args.thumbs is not None,
@@ -102,16 +80,4 @@ def main(args=None):
         notebook=args.notebook,
         debug=args.debug,
         force=args.force,
-    )
-
-    downloaded_imgs = len([
-        path for path in paths
-        if path is not None
-    ])
-
-    logger.debug(
-        "Downloaded {:0.2%} of images ({})".format(
-            downloaded_imgs / len(urls),
-            downloaded_imgs
-        )
     )

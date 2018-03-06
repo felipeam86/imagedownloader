@@ -9,8 +9,9 @@ import logging
 import sys
 
 from .downloader import download
+from .settings import config
 
-__all__ = ['download']
+__all__ = ['download', 'config']
 
 # Create logger
 logger = logging.getLogger(__name__)

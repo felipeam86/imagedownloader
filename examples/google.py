@@ -5,8 +5,7 @@ import json
 from pathlib import Path
 from time import sleep
 
-from imgdl import download
-from imgdl.settings import config
+from imgdl import download, config
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
