@@ -15,7 +15,7 @@ config = {
         'small': [50, 50],
         'big': [200, 200],
     },
-    'N_WORKERS': cpu_count(),
+    'N_WORKERS': cpu_count() * 10,
     'TIMEOUT': 5.0,
     'MIN_WAIT': 0.0,
     'MAX_WAIT': 0.0,
