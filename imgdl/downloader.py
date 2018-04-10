@@ -155,11 +155,10 @@ class ImageDownloader(object):
 
         Returns
         -------
-        paths : str | dict
+        paths : str | list
             If url is a str, path where the image was stored.
-            If url is iterable a dict with urls as keys and image path as
-            values. If image failed to download, None is given instead of
-            image path
+            If url is iterable the list of image paths is returned. If
+            image failed to download, None is given instead of image path
         """
 
         if self.debug:
@@ -349,11 +348,10 @@ def download(urls,
 
     Returns
     -------
-    paths : str | dict
+    paths : str | list
         If url is a str, path where the image was stored.
-        If url is iterable a dict with urls as keys and image path as
-        values. If image failed to download, None is given instead of
-        image path
+        If url is iterable the list of image paths is returned. If
+        image failed to download, None is given instead of image path
     """
     downloader = ImageDownloader(
         store_path,
