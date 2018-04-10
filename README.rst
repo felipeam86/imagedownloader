@@ -15,7 +15,7 @@ urls. It comes with the following features:
    distribution.
 
 Installation
-============
+------------
 
 .. code:: bash
 
@@ -28,7 +28,7 @@ Or, from the root project directory:
     pip install .
 
 Usage
-=====
+-----
 
 Here is a simple example using the default configurations:
 
@@ -91,7 +91,7 @@ on the directory where the Python process was launched. See
 `config.yaml.example`_
 
 Command Line Interface
-======================
+----------------------
 
 It can also be used as a command line utility:
 
@@ -133,10 +133,106 @@ It can also be used as a command line utility:
       --notebook            Use the notebook version of tqdm (default: False)
       -d, --debug           Activate debug mode (default: False)
 
+
+Download images from google
+===========================
+
+This is an example of how we can use ``imgdl`` to download images from a google image search.
+I currently use this to quickly build up image datasets. I took inspiration from `this`_ blog
+post by `pyimagesearch`_.
+
+Requirements
+------------
+
+Install imgdl with the ``[google]`` extra requirements:
+
+.. code:: bash
+
+    pip install imgdl[google]
+
+
+Download the webdriver for Chrome `here`_  and make sure it’s in your PATH, e. g., place it in /usr/bin or /usr/local/bin.
+
+.. code:: bash
+
+    sudo cp chromedriver /usr/local/bin/
+
+Clone this repository, or simply download the ``google.py`` script.
+
+Usage
+-----
+
+
+You are ready to download images from a google images search. Here is an example of usage:
+
+.. code:: bash
+
+    $ python google.py "paris by night" -n 600 --interactive
+    Querying google images for 'paris by night'
+    Scrolling down five times
+    600 images found.
+    Downloading to /Users/aguirre/Projets/imagedownloader/examples/images
+    100%|█████████████████████████████| 600/600 [01:15<00:00,  7.91it/s]
+    2018-03-04 23:21:52,616 - imgdl.downloader - INFO - 0 images failed to download
+
+The first argument is the query to be sent to google. With ``-n 600`` you are asking for at least 600 images.
+By default, a google image query page has only 100 images and requires you to scroll down if you want more.
+What the script is doing is using `selenium`_ to simulate a browsing session and scroll down on google search.
+With the ``--interactive`` flag, chrome will open and you will be able to see how it scrolls down in order to
+get more images. Here is the full list of the command line options:
+
+.. code:: bash
+
+    $ python google.py --help
+    usage: google.py [-h] [-n N_IMAGES] [--interactive] [-o STORE_PATH]
+                     [--thumbs THUMBS] [--n_workers N_WORKERS] [--timeout TIMEOUT]
+                     [--min_wait MIN_WAIT] [--max_wait MAX_WAIT] [--proxy PROXY]
+                     [-u USER_AGENT] [-f] [--notebook] [-d]
+                     query
+
+    Download images from a google images query
+
+    positional arguments:
+      query                 Query string to be executed on google images
+
+    optional arguments:
+      -h, --help            show this help message and exit
+      -n N_IMAGES, --n_images N_IMAGES
+                            Number of expected images to download (default: 100)
+      --interactive         Open up chrome interactively to see the search results
+                            and scrolling action. (default: False)
+      -o STORE_PATH, --store_path STORE_PATH
+                            Root path where images should be stored (default:
+                            images)
+      --thumbs THUMBS       Thumbnail size to be created. Can be specified as many
+                            times as thumbs sizes you want (default: None)
+      --n_workers N_WORKERS
+                            Number of simultaneous threads to use (default: 40)
+      --timeout TIMEOUT     Timeout to be given to the url request (default: 5.0)
+      --min_wait MIN_WAIT   Minimum wait time between image downloads (default:
+                            0.0)
+      --max_wait MAX_WAIT   Maximum wait time between image downloads (default:
+                            0.0)
+      --proxy PROXY         Proxy or list of proxies to use for the requests
+                            (default: None)
+      -u USER_AGENT, --user_agent USER_AGENT
+                            User agent to be used for the requests (default:
+                            Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:55.0)
+                            Gecko/20100101 Firefox/55.0)
+      -f, --force           Force the download even if the files already exists
+                            (default: False)
+      --notebook            Use the notebook version of tqdm (default: False)
+      -d, --debug           Activate debug mode (default: False)
+
+
 Acknowledgements
-================
+----------------
 
 Images used for tests are from the `wikimedia commons`_
 
 .. _config.yaml.example: config.yaml.example
 .. _wikimedia commons: https://commons.wikimedia.org
+.. _here: https://sites.google.com/a/chromium.org/chromedriver/downloads
+.. _this: https://www.pyimagesearch.com/2017/12/04/how-to-create-a-deep-learning-dataset-using-google-images/
+.. _pyimagesearch: https://www.pyimagesearch.com/
+.. _selenium: http://selenium-python.readthedocs.io/
