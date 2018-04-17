@@ -10,6 +10,7 @@ from io import BytesIO
 from pathlib import Path
 from pprint import pformat
 from time import sleep
+from uuid import uuid4
 
 import attr
 import requests
@@ -20,6 +21,17 @@ from .settings import config
 from .utils import to_bytes
 
 logger = logging.getLogger(__name__)
+
+
+def make_session(proxies=None, headers=None):
+    proxies = proxies or {}
+    headers = headers or {}
+    s = requests.Session()
+    s.proxies.update(proxies)
+    s.headers.update(headers)
+    s.id = uuid4().hex
+
+    return s
 
 
 @attr.s
@@ -195,7 +207,7 @@ class ImageDownloader(object):
 
         return paths
 
-    def _download_image(self, url, force=False):
+    def _download_image(self, url, force=False, session=None, timeout=None):
         """Download image, create thumbnails, store and return checksum.
 
         Downloads image of the given url. If self.thumbs is True, it creates
@@ -214,20 +226,24 @@ class ImageDownloader(object):
         force : bool
             If True force the download even if the file already exists
 
+        session : requests.Session
+            An instance of requests.Session with which image will be downloaded.
+            Useful when you want to use the same session for several downloads.
+
+        timeout : float
+            Timeout to be given to the url request
+
         Returns
         -------
         path : str
             Path where the image was stored
         """
+        session = session or make_session(proxies=self.get_proxy(), headers=self.headers)
+        timeout = timeout or self.timeout
         orig_img = None
         path = self.file_path(url)
         if not path.exists() or force:
-            response = requests.get(
-                url,
-                timeout=self.timeout,
-                proxies=self.get_proxy(),
-                headers=self.headers
-            )
+            response = session.get(url, timeout=timeout)
             orig_img = Image.open(BytesIO(response.content))
             img, buf = self.convert_image(orig_img)
             self._persist_file(path, buf)
