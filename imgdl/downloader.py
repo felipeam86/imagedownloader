@@ -171,12 +171,12 @@ class ImageDownloader(object):
             raise ValueError("urls should be str or iterable")
 
         if isinstance(urls, str):
-            return str(self.download_image(urls, force=force))
+            return str(self._download_image(urls, force=force))
 
         with futures.ThreadPoolExecutor(max_workers=self.n_workers) as executor:
             n_fail = 0
             future_to_url = {
-                executor.submit(self.download_image, url, force): (i, url)
+                executor.submit(self._download_image, url, force): (i, url)
                 for i, url in enumerate(urls)
             }
             total = len(future_to_url)
@@ -195,7 +195,7 @@ class ImageDownloader(object):
 
         return paths
 
-    def download_image(self, url, force=False):
+    def _download_image(self, url, force=False):
         """Download image, create thumbnails, store and return checksum.
 
         Downloads image of the given url. If self.thumbs is True, it creates
