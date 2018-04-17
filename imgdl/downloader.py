@@ -36,10 +36,9 @@ def make_session(proxies=None, headers=None):
 
 @attr.s
 class ImageDownloader(object):
-    """Image downloader that converts to common format and creates thumbs.
+    """Image downloader that converts to common format.
 
-    Downloads images and converts them to JPG format and RGB mode. If specified
-    it generates thumbnails of the images.
+    Downloads images and converts them to JPG format and RGB mode.
 
     Parameters
     ----------
@@ -49,11 +48,6 @@ class ImageDownloader(object):
         Number of simultaneous threads to use
     timeout : float
         Timeout to be given to the url request
-    thumbs : bool
-        If True, create thumbnails of sizes according to self.thumbs_size
-    thumbs_size : dict | list
-        Dictionary of the kind {name: (width, height)} indicating the thumbnail
-        sizes to be created
     min_wait : float
         Minimum wait time between image downloads
     max_wait : float
@@ -73,8 +67,6 @@ class ImageDownloader(object):
     store_path = attr.ib(converter=lambda v: Path(v).expanduser(), default=config['STORE_PATH'])
     n_workers = attr.ib(converter=int, default=config['N_WORKERS'])
     timeout = attr.ib(converter=float, default=config['TIMEOUT'])
-    thumbs = attr.ib(converter=bool, default=config['THUMBS'])
-    thumbs_size = attr.ib(default=config['THUMBS_SIZES'])
     min_wait = attr.ib(converter=float, default=config['MIN_WAIT'])
     max_wait = attr.ib(converter=float, default=config['MAX_WAIT'])
     proxies = attr.ib(default=config['PROXIES'])
@@ -105,54 +97,18 @@ class ImageDownloader(object):
         elif value is not None:
             raise ValueError("proxies should be either a string, a list of strings or None")
 
-    @thumbs_size.validator
-    def resolve_thumbs_size(self, attribute, value):
-        thumbs_size = value or {}
-        if self.thumbs:
-            if isinstance(thumbs_size, dict):
-                for k, v in thumbs_size.items():
-                    if not (isinstance(v, (tuple, list)) and
-                            (len(v) == 2) and
-                            isinstance(v[0], int) and
-                            isinstance(v[1], int)):
-
-                        raise ValueError(f"Wrong type of thumbs_size for key '{k}' --> '{v}'"
-                                         f" should be a tuple of ints of size 2")
-                self.thumbs_size = thumbs_size
-            elif isinstance(thumbs_size, list):
-                for v in thumbs_size:
-                    if not isinstance(v, int):
-                        raise ValueError(f"Wrong type for thumbs_size '{v}' --> should be an int")
-                self.thumbs_size = {
-                    str(thumb): (thumb, thumb)
-                    for thumb in thumbs_size
-                }
-            else:
-                raise Exception("thumbs_size must be a dictionary or a list")
-        else:
-            self.thumbs_size = {}
-
     @notebook.validator
     def set_tqdm(self, attribute, value):
         self.tqdm = tqdm_notebook if value else tqdm
 
     def __attrs_post_init__(self):
-        self._makedirs()
+        Path(self.store_path).mkdir(exist_ok=True, parents=True)
 
     def get_proxy(self):
         if isinstance(self.proxies, list):
             return random.choice(self.proxies)
         else:
             return self.proxies
-
-    def _makedirs(self):
-
-        subdirs = ['.']
-        if hasattr(self, 'thumbs_size'):
-            subdirs += [f'thumbs/{size}' for size in self.thumbs_size.keys()]
-
-        for subdir in subdirs:
-            Path(self.store_path, subdir).mkdir(exist_ok=True, parents=True)
 
     def __call__(self, urls, force=False):
         """Download url or list of urls
@@ -208,11 +164,7 @@ class ImageDownloader(object):
         return paths
 
     def _download_image(self, url, force=False, session=None, timeout=None):
-        """Download image, create thumbnails, store and return checksum.
-
-        Downloads image of the given url. If self.thumbs is True, it creates
-        thumbnails of sizes according to self.thumbs_size. The md5 checksum of
-        the image is returned for checking duplicates.
+        """Download image and convert to jpeg rgb mode.
 
         If the image path already exists, it considers that the file has
         already been downloaded and does not downloaded again.
@@ -240,7 +192,6 @@ class ImageDownloader(object):
         """
         session = session or make_session(proxies=self.get_proxy(), headers=self.headers)
         timeout = timeout or self.timeout
-        orig_img = None
         path = self.file_path(url)
         if not path.exists() or force:
             response = session.get(url, timeout=timeout)
@@ -250,12 +201,6 @@ class ImageDownloader(object):
             # Only wait if image had to be downloaded
             sleep(random.uniform(self.min_wait, self.max_wait))
 
-        for thumb_id, size in self.thumbs_size.items():
-            thumb_path = self.thumb_path(url, thumb_id)
-            if not thumb_path.exists() or force:
-                orig_img = orig_img or Image.open(str(path))
-                thumb_image, thumb_buf = self.convert_image(orig_img, size)
-                self._persist_file(thumb_path, thumb_buf)
 
         return path
 
@@ -307,19 +252,11 @@ class ImageDownloader(object):
         image_guid = hashlib.sha1(to_bytes(url)).hexdigest()
         return Path(self.store_path, image_guid + '.jpg')
 
-    def thumb_path(self, url, thumb_id):
-        """Hash url to get file path of thumbnail
-        """
-        thumb_guid = hashlib.sha1(to_bytes(url)).hexdigest()
-        return Path(self.store_path, 'thumbs', thumb_id, thumb_guid + '.jpg')
-
 
 def download(urls,
              store_path=config['STORE_PATH'],
              n_workers=config['N_WORKERS'],
              timeout=config['TIMEOUT'],
-             thumbs=config['THUMBS'],
-             thumbs_size=config['THUMBS_SIZES'],
              min_wait=config['MIN_WAIT'],
              max_wait=config['MAX_WAIT'],
              proxies=config['PROXIES'],
@@ -340,11 +277,6 @@ def download(urls,
         Number of simultaneous threads to use
     timeout : float
         Timeout to be given to the url request
-    thumbs : bool
-        If True, create thumbnails of sizes according to thumbs_size
-    thumbs_size : dict
-        Dictionary of the kind {name: (width, height)} indicating the thumbnail
-        sizes to be created
     min_wait : float
         Minimum wait time between image downloads
     max_wait : float
@@ -372,8 +304,6 @@ def download(urls,
     downloader = ImageDownloader(
         store_path,
         n_workers=n_workers,
-        thumbs=thumbs,
-        thumbs_size=thumbs_size,
         timeout=timeout,
         min_wait=min_wait,
         max_wait=max_wait,

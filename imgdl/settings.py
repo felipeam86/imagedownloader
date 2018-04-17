@@ -1,20 +1,18 @@
 # -*- coding: utf-8 -*-
 
+import logging
+import sys
 from pathlib import Path
 from multiprocessing import cpu_count
 
 import yaml
+from pythonjsonlogger import jsonlogger
 import requests
 
 PACKAGE_NAME = "imgdl"
 
 config = {
     'STORE_PATH': str(Path('~', '.datasets', 'imgdl').expanduser()),
-    'THUMBS': False,
-    'THUMBS_SIZES': {
-        'small': [50, 50],
-        'big': [200, 200],
-    },
     'N_WORKERS': cpu_count() * 10,
     'TIMEOUT': 5.0,
     'MIN_WAIT': 0.0,
