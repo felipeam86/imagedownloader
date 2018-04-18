@@ -20,7 +20,6 @@ def test_download():
     paths = download(
         urls,
         store_path=store_path.name,
-        thumbs=True,
         force=False,
         notebook=False,
         debug=True,
@@ -31,17 +30,13 @@ def test_download():
         if path is not None
     ])
 
-    subdirs = [Path(store_path.name)]
-    for thumb_id, size in config['THUMBS_SIZES'].items():
-        subdirs += [Path(store_path.name, 'thumbs', thumb_id)]
+    assert Path(store_path.name).exists(), \
+        f"Image directory {store_path} should exist after download"
+    nb_images = len(list(Path(store_path.name).glob('*.jpg')))
+    assert nb_images == downloaded, \
+        f"Image directory {store_path} should contain {downloaded} " \
+        f"images after download, but has {nb_images}"
 
-    for subdir_path in subdirs:
-        assert subdir_path.exists(), \
-            f"Image directory {subdir_path} should exist after download"
-        nb_images = len(list(subdir_path.glob('*.jpg')))
-        assert nb_images == downloaded, \
-            f"Image directory {subdir_path} should contain {downloaded} " \
-            f"images after download, but has {nb_images}"
 
     for path in paths:
         if path is not None:

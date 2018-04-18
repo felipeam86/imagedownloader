@@ -104,8 +104,6 @@ def main(args):
         store_path=store_path,
         n_workers=args.n_workers,
         timeout=args.timeout,
-        thumbs=args.thumbs is not None,
-        thumbs_size=args.thumbs,
         min_wait=args.min_wait,
         max_wait=args.max_wait,
         proxies=args.proxy,
@@ -137,10 +135,6 @@ if __name__ == '__main__':
 
     parser.add_argument('-o', '--store_path', type=str, default=IMAGE_STORE,
                         help="Root path where images should be stored")
-
-    parser.add_argument('--thumbs', type=int, action='append',
-                        help="Thumbnail size to be created. "
-                             "Can be specified as many times as thumbs sizes you want")
 
     parser.add_argument('--n_workers', type=int, default=config['N_WORKERS'],
                         help="Number of simultaneous threads to use")
