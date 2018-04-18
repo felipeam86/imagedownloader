@@ -149,11 +149,8 @@ class ImageDownloader(object):
                     paths[i] = str(future.result())
                 else:
                     n_fail += 1
-                    if self.debug:
-                        logger.error(f'Error: {future.exception()}')
-                        logger.error(f'For url: {url}')
 
-            logger.info(f"{n_fail} images failed to download")
+            logger.warning(f"{n_fail} images failed to download")
 
         return paths
 
@@ -184,20 +181,50 @@ class ImageDownloader(object):
         path : str
             Path where the image was stored
         """
-
+        metadata = {
+            'success': False,
+            'url': url,
+        }
         path = Path(self.store_path, hashlib.sha1(to_bytes(url)).hexdigest() + '.jpg')
         if path.exists() and not force:
+            metadata.update({
+                'success': True,
+                'filepath': path
+            })
+            logger.info('On cache', extra=metadata)
             return path
+        try:
+            session = session or make_session(proxies=random.choice(self.proxies), headers=self.headers)
+            timeout = timeout or self.timeout
+            metadata['session'] = {
+                'headers': dict(session.headers),
+                'id': session.id,
+                'proxy': session.proxies.get('http'),
+                'timeout': timeout,
+            }
+            response = session.get(url, timeout=timeout)
+            metadata['response'] = {
+                'headers': dict(response.headers),
+                'status_code': response.status_code,
+            }
+            orig_img = Image.open(BytesIO(response.content))
+            img, buf = self.convert_image(orig_img)
+            with path.open('wb') as f:
+                f.write(buf.getvalue())
+            metadata.update({
+                'success': True,
+                'filepath': path,
+            })
 
-        session = session or make_session(proxies=random.choice(self.proxies), headers=self.headers)
-        timeout = timeout or self.timeout
-        response = session.get(url, timeout=timeout)
-        orig_img = Image.open(BytesIO(response.content))
-        img, buf = self.convert_image(orig_img)
-        with path.open('wb') as f:
-            f.write(buf.getvalue())
-        sleep(random.uniform(self.min_wait, self.max_wait))
-
+            logger.info('Downloaded', extra=metadata)
+            sleep(random.uniform(self.min_wait, self.max_wait))
+        except Exception as e:
+            metadata['Exception'] = {
+                'type': type(e),
+                'msg': str(e),
+            }
+            logger.error(f'Failed', extra=metadata)
+            raise e
         return path
 
     @staticmethod
