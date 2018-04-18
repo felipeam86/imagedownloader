@@ -3,6 +3,7 @@
 
 import collections
 import hashlib
+import logging
 import random
 from concurrent import futures
 from io import BytesIO
@@ -18,8 +19,6 @@ from tqdm import tqdm, tqdm_notebook
 
 from .settings import config, get_logger
 from .utils import to_bytes
-
-logger = get_logger(__name__)
 
 
 def make_session(proxies=None, headers=None):
@@ -61,6 +60,8 @@ class ImageDownloader(object):
         If True, use the notebook version of tqdm
     debug : bool
         If True, log urls that could not be downloaded
+    logfile : str
+        Path to logfile
     """
 
     store_path = attr.ib(converter=lambda v: Path(v).expanduser(), default=config['STORE_PATH'])
@@ -73,6 +74,7 @@ class ImageDownloader(object):
     user_agent = attr.ib(converter=str, default=config['USER_AGENT'])
     notebook = attr.ib(converter=bool, default=False)
     debug = attr.ib(converter=bool, default=False)
+    logfile = attr.ib(default=config.get('LOGFILE'))
 
     @user_agent.validator
     def update_headers(self, attribute, value):
@@ -103,6 +105,12 @@ class ImageDownloader(object):
     @store_path.validator
     def mkdir(self, attribute, value):
         Path(self.store_path).mkdir(exist_ok=True, parents=True)
+
+    @debug.validator
+    def get_logger(self, attribute, value):
+        self.logger = get_logger(__name__, filename=self.logfile, streamhandler=value)
+        if (self.logfile is None) and (not value):
+            logging.disable(logging.CRITICAL)
 
     def __call__(self, urls, force=False):
         """Download url or list of urls
@@ -150,7 +158,7 @@ class ImageDownloader(object):
                 else:
                     n_fail += 1
 
-            logger.warning(f"{n_fail} images failed to download")
+            self.logger.warning(f"{n_fail} images failed to download")
 
         return paths
 
@@ -191,7 +199,7 @@ class ImageDownloader(object):
                 'success': True,
                 'filepath': path
             })
-            logger.info('On cache', extra=metadata)
+            self.logger.info('On cache', extra=metadata)
             return path
         try:
             session = session or make_session(proxies=random.choice(self.proxies), headers=self.headers)
@@ -216,14 +224,14 @@ class ImageDownloader(object):
                 'filepath': path,
             })
 
-            logger.info('Downloaded', extra=metadata)
+            self.logger.info('Downloaded', extra=metadata)
             sleep(random.uniform(self.min_wait, self.max_wait))
         except Exception as e:
             metadata['Exception'] = {
                 'type': type(e),
                 'msg': str(e),
             }
-            logger.error(f'Failed', extra=metadata)
+            self.logger.error(f'Failed', extra=metadata)
             raise e
         return path
 
@@ -276,7 +284,8 @@ def download(urls,
              user_agent=config['USER_AGENT'],
              notebook=False,
              debug=False,
-             force=False):
+             force=False,
+             logfile=config.get('LOGFILE')):
     """Asynchronously download images using multiple threads.
 
     Parameters
@@ -305,6 +314,8 @@ def download(urls,
         If True, log urls that could not be downloaded
     force : bool
         If True force the download even if the files already exists
+    logfile : str
+        Path to logfile
 
     Returns
     -------
@@ -323,7 +334,8 @@ def download(urls,
         headers=headers,
         user_agent=user_agent,
         notebook=notebook,
-        debug=debug
+        debug=debug,
+        logfile=logfile,
     )
 
     return downloader(urls, force=force)

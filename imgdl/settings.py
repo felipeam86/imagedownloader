@@ -40,35 +40,36 @@ for config_file in extra_config_files:
             config.update(extra_config[PACKAGE_NAME])
 
 
-def get_logger(name, filename=None, level=None):
-    filename = filename or config.get('LOGFILE')
+def get_logger(name, filename=None, streamhandler=False):
+
     # Create logger
     logger = logging.getLogger(name)
 
     # Create formatter and add it to the handler
     formatter = jsonlogger.JsonFormatter(
-                "%(asctime) %(name) %(levelname) %(message)",
-                '%Y-%m-%d-%H:%M:%S'
-            )
+        "%(asctime) %(name) %(levelname) %(message)",
+        '%Y-%m-%d-%H:%M:%S'
+    )
 
-    # Create STDERR handler
-    handler = logging.StreamHandler(sys.stderr)
-    handler.setFormatter(formatter)
-    handler.setLevel(logging.WARNING)
+    # Avoid duplicate handlers
+    logger.handlers = []
 
-    # Set STDERR handler as the only handler
-    logger.addHandler(handler)
+    if streamhandler:
+        # Create STDERR handler
+        handler = logging.StreamHandler(sys.stderr)
+        handler.setFormatter(formatter)
+        handler.setLevel(logging.WARNING)
+        logger.addHandler(handler)
 
     if filename is not None:
         # Create json formatter
         filehandler = logging.FileHandler(filename)
         filehandler.setFormatter(formatter)
         filehandler.setLevel(logging.DEBUG)
-
         logger.addHandler(filehandler)
 
     # Prevent multiple logging if called from other packages
     logger.propagate = False
-    logger.setLevel(level or logging.INFO)
+    logger.setLevel(logging.DEBUG)
 
     return logger
