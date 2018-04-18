@@ -48,7 +48,6 @@ def get_logger(name, filename=None, streamhandler=False):
     # Create formatter and add it to the handler
     formatter = jsonlogger.JsonFormatter(
         "%(asctime) %(name) %(levelname) %(message)",
-        '%Y-%m-%d-%H:%M:%S'
     )
 
     # Avoid duplicate handlers
