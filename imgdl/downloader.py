@@ -101,14 +101,9 @@ class ImageDownloader(object):
     def set_tqdm(self, attribute, value):
         self.tqdm = tqdm_notebook if value else tqdm
 
-    def __attrs_post_init__(self):
+    @store_path.validator
+    def mkdir(self, attribute, value):
         Path(self.store_path).mkdir(exist_ok=True, parents=True)
-
-    def get_proxy(self):
-        if isinstance(self.proxies, list):
-            return random.choice(self.proxies)
-        else:
-            return self.proxies
 
     def __call__(self, urls, force=False):
         """Download url or list of urls
@@ -190,24 +185,21 @@ class ImageDownloader(object):
         path : str
             Path where the image was stored
         """
-        session = session or make_session(proxies=self.get_proxy(), headers=self.headers)
+
+        path = Path(self.store_path, hashlib.sha1(to_bytes(url)).hexdigest() + '.jpg')
+        if path.exists() and not force:
+            return path
+
+        session = session or make_session(proxies=random.choice(self.proxies), headers=self.headers)
         timeout = timeout or self.timeout
-        path = self.file_path(url)
-        if not path.exists() or force:
-            response = session.get(url, timeout=timeout)
-            orig_img = Image.open(BytesIO(response.content))
-            img, buf = self.convert_image(orig_img)
-            self._persist_file(path, buf)
-            # Only wait if image had to be downloaded
-            sleep(random.uniform(self.min_wait, self.max_wait))
-
-
-        return path
-
-    @staticmethod
-    def _persist_file(path, buf):
+        response = session.get(url, timeout=timeout)
+        orig_img = Image.open(BytesIO(response.content))
+        img, buf = self.convert_image(orig_img)
         with path.open('wb') as f:
             f.write(buf.getvalue())
+        sleep(random.uniform(self.min_wait, self.max_wait))
+
+        return path
 
     @staticmethod
     def convert_image(img, size=None):
@@ -245,12 +237,6 @@ class ImageDownloader(object):
         buf = BytesIO()
         img.save(buf, 'JPEG')
         return img, buf
-
-    def file_path(self, url):
-        """Hash url to get file path of full image
-        """
-        image_guid = hashlib.sha1(to_bytes(url)).hexdigest()
-        return Path(self.store_path, image_guid + '.jpg')
 
 
 def download(urls,
