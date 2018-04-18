@@ -44,7 +44,6 @@ def get_logger(name, filename=None, level=None):
     filename = filename or config.get('LOGFILE')
     # Create logger
     logger = logging.getLogger(name)
-    logger.setLevel(logging.DEBUG)
 
     # Create formatter and add it to the handler
     formatter = jsonlogger.JsonFormatter(
@@ -55,14 +54,16 @@ def get_logger(name, filename=None, level=None):
     # Create STDERR handler
     handler = logging.StreamHandler(sys.stderr)
     handler.setFormatter(formatter)
+    handler.setLevel(logging.WARNING)
 
     # Set STDERR handler as the only handler
-    logger.handlers = [handler]
+    logger.addHandler(handler)
 
     if filename is not None:
         # Create json formatter
         filehandler = logging.FileHandler(filename)
         filehandler.setFormatter(formatter)
+        filehandler.setLevel(logging.DEBUG)
 
         logger.addHandler(filehandler)
 
