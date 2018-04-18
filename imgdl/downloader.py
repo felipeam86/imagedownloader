@@ -3,7 +3,6 @@
 
 import collections
 import hashlib
-import logging
 import random
 from concurrent import futures
 from io import BytesIO
@@ -17,10 +16,10 @@ import requests
 from PIL import Image
 from tqdm import tqdm, tqdm_notebook
 
-from .settings import config
+from .settings import config, get_logger
 from .utils import to_bytes
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def make_session(proxies=None, headers=None):

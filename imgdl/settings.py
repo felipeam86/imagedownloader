@@ -38,3 +38,36 @@ for config_file in extra_config_files:
         extra_config = yaml.load(config_file.open())
         if PACKAGE_NAME in extra_config:
             config.update(extra_config[PACKAGE_NAME])
+
+
+def get_logger(name, filename=None, level=None):
+    filename = filename or config.get('LOGFILE')
+    # Create logger
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.DEBUG)
+
+    # Create formatter and add it to the handler
+    formatter = jsonlogger.JsonFormatter(
+                "%(asctime) %(name) %(levelname) %(message)",
+                '%Y-%m-%d-%H:%M:%S'
+            )
+
+    # Create STDERR handler
+    handler = logging.StreamHandler(sys.stderr)
+    handler.setFormatter(formatter)
+
+    # Set STDERR handler as the only handler
+    logger.handlers = [handler]
+
+    if filename is not None:
+        # Create json formatter
+        filehandler = logging.FileHandler(filename)
+        filehandler.setFormatter(formatter)
+
+        logger.addHandler(filehandler)
+
+    # Prevent multiple logging if called from other packages
+    logger.propagate = False
+    logger.setLevel(level or logging.INFO)
+
+    return logger

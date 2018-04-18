@@ -3,3 +3,4 @@ requests>=2.14.2
 tqdm>=4.15.0
 PyYAML
 attrs
+python-json-logger
