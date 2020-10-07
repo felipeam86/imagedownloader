@@ -148,7 +148,7 @@ Install imgdl with the ``[google]`` extra requirements:
 
 .. code:: bash
 
-    pip install imgdl[google]
+    pip install "imgdl[google]" 
 
 
 Download the webdriver for Chrome `here`_  and make sure it’s in your PATH, e. g., place it in /usr/bin or /usr/local/bin.
