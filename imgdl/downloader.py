@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import collections
 import hashlib
 import logging
 import random
+from collections.abc import Iterable
 from concurrent import futures
 from io import BytesIO
 from pathlib import Path
@@ -137,7 +137,7 @@ class ImageDownloader(object):
             separation = '=' * max(map(len, arguments.split("\n")))
             print(f"{separation}\n{title}\n{arguments}\n{separation}")
 
-        if not isinstance(urls, (str, collections.Iterable)):
+        if not isinstance(urls, (str, Iterable)):
             raise ValueError("urls should be str or iterable")
 
         if isinstance(urls, str):

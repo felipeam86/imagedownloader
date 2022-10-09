@@ -10,5 +10,5 @@ Bulk image downloader from a list of urls
 setup(
     setup_requires=['pbr'],
     pbr=True,
-    python_requires='~=3.6',
+    python_requires='~=3.9',
 )
