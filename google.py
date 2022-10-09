@@ -108,7 +108,6 @@ def main(args):
         max_wait=args.max_wait,
         proxies=args.proxy,
         user_agent=args.user_agent,
-        notebook=args.notebook,
         debug=args.debug,
         force=args.force,
     )
@@ -156,9 +155,6 @@ if __name__ == '__main__':
 
     parser.add_argument('-f', '--force', action='store_true',
                         help="Force the download even if the files already exists")
-
-    parser.add_argument('--notebook', action='store_true',
-                        help="Use the notebook version of tqdm")
 
     parser.add_argument('-d', '--debug', action='store_true',
                         help="Activate debug mode")

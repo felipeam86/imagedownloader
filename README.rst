@@ -80,7 +80,6 @@ Here is the complete list of parameters taken by ``download``:
 -  ``proxies``: Proxy or list of proxies to use for the requests
 -  ``headers``: headers to be given to ``requests``
 -  ``user_agent``: User agent to be used for the requests
--  ``notebook``: If True, use the notebook version of tqdm progress bar
 -  ``debug`` If True, ``imgdl`` logs urls that could not be downloaded
 -  ``force``: ``download`` checks first if the image already exists on
    ``store_path`` in order to avoid double downloads. If you want to
@@ -100,7 +99,7 @@ It can also be used as a command line utility:
     $ imgdl --help
     usage: imgdl [-h] [-o STORE_PATH] [--thumbs THUMBS] [--n_workers N_WORKERS]
                  [--timeout TIMEOUT] [--min_wait MIN_WAIT] [--max_wait MAX_WAIT]
-                 [--proxy PROXY] [-u USER_AGENT] [-f] [--notebook] [-d]
+                 [--proxy PROXY] [-u USER_AGENT] [-f] [-d]
                  urls
 
     Bulk image downloader from a list of urls
@@ -130,7 +129,6 @@ It can also be used as a command line utility:
                             Gecko/20100101 Firefox/55.0)
       -f, --force           Force the download even if the files already exists
                             (default: False)
-      --notebook            Use the notebook version of tqdm (default: False)
       -d, --debug           Activate debug mode (default: False)
 
 
@@ -187,7 +185,7 @@ get more images. Here is the full list of the command line options:
     usage: google.py [-h] [-n N_IMAGES] [--interactive] [-o STORE_PATH]
                      [--thumbs THUMBS] [--n_workers N_WORKERS] [--timeout TIMEOUT]
                      [--min_wait MIN_WAIT] [--max_wait MAX_WAIT] [--proxy PROXY]
-                     [-u USER_AGENT] [-f] [--notebook] [-d]
+                     [-u USER_AGENT] [-f] [-d]
                      query
 
     Download images from a google images query
@@ -221,7 +219,6 @@ get more images. Here is the full list of the command line options:
                             Gecko/20100101 Firefox/55.0)
       -f, --force           Force the download even if the files already exists
                             (default: False)
-      --notebook            Use the notebook version of tqdm (default: False)
       -d, --debug           Activate debug mode (default: False)
 
 

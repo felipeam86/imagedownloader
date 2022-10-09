@@ -21,7 +21,6 @@ def test_download():
         urls,
         store_path=store_path.name,
         force=False,
-        notebook=False,
         debug=True,
     )
 

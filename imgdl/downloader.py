@@ -15,7 +15,7 @@ from uuid import uuid4
 import attr
 import requests
 from PIL import Image
-from tqdm import tqdm, tqdm_notebook
+from tqdm.auto import tqdm
 
 from .settings import config, get_logger
 from .utils import to_bytes
@@ -56,8 +56,6 @@ class ImageDownloader(object):
         headers to be given to requests
     user_agent : str
         User agent to be used for the requests
-    notebook : bool
-        If True, use the notebook version of tqdm
     debug : bool
         If True, log urls that could not be downloaded
     logfile : str
@@ -72,7 +70,6 @@ class ImageDownloader(object):
     proxies = attr.ib(default=config['PROXIES'])
     headers = attr.ib(converter=dict, default=config['HEADERS'])
     user_agent = attr.ib(converter=str, default=config['USER_AGENT'])
-    notebook = attr.ib(converter=bool, default=False)
     debug = attr.ib(converter=bool, default=False)
     logfile = attr.ib(default=config.get('LOGFILE'))
 
@@ -97,10 +94,6 @@ class ImageDownloader(object):
             self.proxies = [format_as_dict(proxy) for proxy in value]
         elif value is not None:
             raise ValueError("proxies should be either a string, a list of strings or None")
-
-    @notebook.validator
-    def set_tqdm(self, attribute, value):
-        self.tqdm = tqdm_notebook if value else tqdm
 
     @store_path.validator
     def mkdir(self, attribute, value):
@@ -151,7 +144,7 @@ class ImageDownloader(object):
             }
             total = len(future_to_url)
             paths = [None] * total
-            for future in self.tqdm(futures.as_completed(future_to_url), total=total, miniters=1):
+            for future in tqdm(futures.as_completed(future_to_url), total=total, miniters=1):
                 i, url = future_to_url[future]
                 if future.exception() is None:
                     paths[i] = str(future.result())
@@ -282,7 +275,6 @@ def download(urls,
              proxies=config['PROXIES'],
              headers=config['HEADERS'],
              user_agent=config['USER_AGENT'],
-             notebook=False,
              debug=False,
              force=False,
              logfile=config.get('LOGFILE')):
@@ -308,8 +300,6 @@ def download(urls,
         headers to be given to requests
     user_agent : str
         User agent to be used for the requests
-    notebook : bool
-        If True, use the notebook version of tqdm
     debug : bool
         If True, log urls that could not be downloaded
     force : bool
@@ -333,7 +323,6 @@ def download(urls,
         proxies=proxies,
         headers=headers,
         user_agent=user_agent,
-        notebook=notebook,
         debug=debug,
         logfile=logfile,
     )
