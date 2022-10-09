@@ -7,7 +7,6 @@ urls. It comes with the following features:
 -  Downloads are multithreaded using ``concurrent.futures``.
 -  Relies on a persistent cache. Already downloaded images are not
    downloaded again, unless you force ``imgdl`` to do so.
--  Can hide requests behind proxies
 -  It can be used as a command line utility or as a python library.
 -  Normalizes images to JPG format + RGB mode after download.
 -  Generates thumbnails of varying sizes automatically.
@@ -77,9 +76,6 @@ Here is the complete list of parameters taken by ``download``:
    indicating the thumbnail sizes to be created.
 -  ``min_wait``: Minimum wait time between image downloads
 -  ``max_wait``: Maximum wait time between image downloads
--  ``proxies``: Proxy or list of proxies to use for the requests
--  ``headers``: headers to be given to ``requests``
--  ``user_agent``: User agent to be used for the requests
 -  ``debug`` If True, ``imgdl`` logs urls that could not be downloaded
 -  ``force``: ``download`` checks first if the image already exists on
    ``store_path`` in order to avoid double downloads. If you want to
@@ -99,7 +95,7 @@ It can also be used as a command line utility:
     $ imgdl --help
     usage: imgdl [-h] [-o STORE_PATH] [--thumbs THUMBS] [--n_workers N_WORKERS]
                  [--timeout TIMEOUT] [--min_wait MIN_WAIT] [--max_wait MAX_WAIT]
-                 [--proxy PROXY] [-u USER_AGENT] [-f] [-d]
+                 [-f] [-d]
                  urls
 
     Bulk image downloader from a list of urls
@@ -121,12 +117,6 @@ It can also be used as a command line utility:
                             0.0)
       --max_wait MAX_WAIT   Maximum wait time between image downloads (default:
                             0.0)
-      --proxy PROXY         Proxy or list of proxies to use for the requests
-                            (default: None)
-      -u USER_AGENT, --user_agent USER_AGENT
-                            User agent to be used for the requests (default:
-                            Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:55.0)
-                            Gecko/20100101 Firefox/55.0)
       -f, --force           Force the download even if the files already exists
                             (default: False)
       -d, --debug           Activate debug mode (default: False)

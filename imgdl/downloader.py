@@ -10,7 +10,6 @@ from io import BytesIO
 from pathlib import Path
 from pprint import pformat
 from time import sleep
-from uuid import uuid4
 
 import attr
 import requests
@@ -19,17 +18,6 @@ from tqdm.auto import tqdm
 
 from .settings import config, get_logger
 from .utils import to_bytes
-
-
-def make_session(proxies=None, headers=None):
-    proxies = proxies or {}
-    headers = headers or {}
-    s = requests.Session()
-    s.proxies.update(proxies)
-    s.headers.update(headers)
-    s.id = uuid4().hex
-
-    return s
 
 
 @attr.s
@@ -50,12 +38,8 @@ class ImageDownloader(object):
         Minimum wait time between image downloads
     max_wait : float
         Maximum wait time between image downloads
-    proxies : str | list
-        Proxy or list of proxies to use for the requests
-    headers : dict
-        headers to be given to requests
-    user_agent : str
-        User agent to be used for the requests
+    session : requests.Session
+        requests session
     debug : bool
         If True, log urls that could not be downloaded
     logfile : str
@@ -67,33 +51,10 @@ class ImageDownloader(object):
     timeout = attr.ib(converter=float, default=config['TIMEOUT'])
     min_wait = attr.ib(converter=float, default=config['MIN_WAIT'])
     max_wait = attr.ib(converter=float, default=config['MAX_WAIT'])
-    proxies = attr.ib(default=config['PROXIES'])
-    headers = attr.ib(converter=dict, default=config['HEADERS'])
-    user_agent = attr.ib(converter=str, default=config['USER_AGENT'])
+    session = attr.ib(default=requests.Session())
     debug = attr.ib(converter=bool, default=False)
     logfile = attr.ib(default=config.get('LOGFILE'))
 
-    @user_agent.validator
-    def update_headers(self, attribute, value):
-        if value is not None:
-            self.headers.update({'User-Agent': value})
-
-    @proxies.validator
-    def resolve_proxies(self, attribute, value):
-
-        def format_as_dict(proxy):
-            return {
-                "http": proxy,
-                "https": proxy
-            }
-
-        self.proxies = None
-        if isinstance(value, str):
-            self.proxies = [format_as_dict(value)]
-        elif isinstance(value, list) and len(value) > 0:
-            self.proxies = [format_as_dict(proxy) for proxy in value]
-        elif value is not None:
-            raise ValueError("proxies should be either a string, a list of strings or None")
 
     @store_path.validator
     def mkdir(self, attribute, value):
@@ -195,12 +156,10 @@ class ImageDownloader(object):
             self.logger.info('On cache', extra=metadata)
             return path
         try:
-            session = session or make_session(proxies=random.choice(self.proxies), headers=self.headers)
+            session = session or requests.Session()
             timeout = timeout or self.timeout
             metadata['session'] = {
                 'headers': dict(session.headers),
-                'id': session.id,
-                'proxy': session.proxies.get('http'),
                 'timeout': timeout,
             }
             response = session.get(url, timeout=timeout)
@@ -272,9 +231,7 @@ def download(urls,
              timeout=config['TIMEOUT'],
              min_wait=config['MIN_WAIT'],
              max_wait=config['MAX_WAIT'],
-             proxies=config['PROXIES'],
-             headers=config['HEADERS'],
-             user_agent=config['USER_AGENT'],
+             session=requests.Session(),
              debug=False,
              force=False,
              logfile=config.get('LOGFILE')):
@@ -294,12 +251,6 @@ def download(urls,
         Minimum wait time between image downloads
     max_wait : float
         Maximum wait time between image downloads
-    proxies : list | dict
-        Proxy or list of proxies to use for the requests
-    headers : dict
-        headers to be given to requests
-    user_agent : str
-        User agent to be used for the requests
     debug : bool
         If True, log urls that could not be downloaded
     force : bool
@@ -315,14 +266,12 @@ def download(urls,
         image failed to download, None is given instead of image path
     """
     downloader = ImageDownloader(
-        store_path,
+        store_path=store_path,
         n_workers=n_workers,
         timeout=timeout,
         min_wait=min_wait,
         max_wait=max_wait,
-        proxies=proxies,
-        headers=headers,
-        user_agent=user_agent,
+        session=session,
         debug=debug,
         logfile=logfile,
     )

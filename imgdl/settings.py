@@ -17,16 +17,8 @@ config = {
     'TIMEOUT': 5.0,
     'MIN_WAIT': 0.0,
     'MAX_WAIT': 0.0,
-    'PROXIES': None,
-    'USER_AGENT': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:55.0) Gecko/20100101 Firefox/55.0',
-    'HEADERS': requests.utils.default_headers()
 }
 
-config['HEADERS'].update(
-    {
-        'User-Agent': config['USER_AGENT'],
-    }
-)
 
 extra_config_files = [
     Path('~/.wit/config.yaml').expanduser(),  # System wide configurations

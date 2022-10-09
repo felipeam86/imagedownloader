@@ -40,12 +40,6 @@ def parse(args=None):
     parser.add_argument('--max_wait', type=float, default=config['MAX_WAIT'],
                         help="Maximum wait time between image downloads")
 
-    parser.add_argument('--proxy', type=str, action='append', default=config['PROXIES'],
-                        help="Proxy or list of proxies to use for the requests")
-
-    parser.add_argument('-u', '--user_agent', type=str, default=config['USER_AGENT'],
-                        help="User agent to be used for the requests")
-
     parser.add_argument('-f', '--force', action='store_true',
                         help="Force the download even if the files already exists")
 
@@ -67,8 +61,6 @@ def main(args=None):
         timeout=args.timeout,
         min_wait=args.min_wait,
         max_wait=args.max_wait,
-        proxies=args.proxy,
-        user_agent=args.user_agent,
         debug=args.debug,
         force=args.force,
     )
