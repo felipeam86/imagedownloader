@@ -5,11 +5,11 @@ import hashlib
 import random
 from collections.abc import Iterable
 from concurrent import futures
+from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
 from time import sleep
 
-import attr
 import requests
 from PIL import Image
 from tqdm.auto import tqdm
@@ -24,7 +24,7 @@ logger = get_logger(
 )
 
 
-@attr.s
+@dataclass
 class ImageDownloader(object):
     """Image downloader that converts to common format.
 
@@ -46,12 +46,12 @@ class ImageDownloader(object):
         requests session
     """
 
-    store_path = attr.ib(converter=lambda v: Path(v).expanduser(), default=config['STORE_PATH'])
-    n_workers = attr.ib(converter=int, default=config['N_WORKERS'])
-    timeout = attr.ib(converter=float, default=config['TIMEOUT'])
-    min_wait = attr.ib(converter=float, default=config['MIN_WAIT'])
-    max_wait = attr.ib(converter=float, default=config['MAX_WAIT'])
-    session = attr.ib(default=requests.Session())
+    store_path : Path = config['STORE_PATH']
+    n_workers : int = config['N_WORKERS']
+    timeout : float = config['TIMEOUT']
+    min_wait : float = config['MIN_WAIT']
+    max_wait : float = config['MAX_WAIT']
+    session : requests.Session = requests.Session()
 
     def __call__(self, urls, paths=None, force=False):
         """Download url or list of urls
