@@ -7,7 +7,6 @@ from collections.abc import Iterable
 from concurrent import futures
 from io import BytesIO
 from pathlib import Path
-from pprint import pformat
 from time import sleep
 
 import attr
@@ -45,8 +44,6 @@ class ImageDownloader(object):
         Maximum wait time between image downloads
     session : requests.Session
         requests session
-    debug : bool
-        If True, log urls that could not be downloaded
     """
 
     store_path = attr.ib(converter=lambda v: Path(v).expanduser(), default=config['STORE_PATH'])
@@ -55,8 +52,6 @@ class ImageDownloader(object):
     min_wait = attr.ib(converter=float, default=config['MIN_WAIT'])
     max_wait = attr.ib(converter=float, default=config['MAX_WAIT'])
     session = attr.ib(default=requests.Session())
-    debug = attr.ib(converter=bool, default=False)
-
 
     def __call__(self, urls, paths=None, force=False):
         """Download url or list of urls
@@ -79,12 +74,6 @@ class ImageDownloader(object):
             If url is iterable the list of image paths is returned. If
             image failed to download, None is given instead of image path
         """
-
-        if self.debug:
-            title = '\033[92mImage downloader called with the following arguments :\033[0m'
-            arguments = pformat(attr.asdict(self))
-            separation = '=' * max(map(len, arguments.split("\n")))
-            print(f"{separation}\n{title}\n{arguments}\n{separation}")
 
         if not isinstance(urls, (str, Iterable)):
             raise ValueError("urls should be str or iterable")
@@ -231,7 +220,6 @@ def download(urls,
              min_wait=config['MIN_WAIT'],
              max_wait=config['MAX_WAIT'],
              session=requests.Session(),
-             debug=False,
              force=False):
     """Asynchronously download images using multiple threads.
 
@@ -251,8 +239,6 @@ def download(urls,
         Minimum wait time between image downloads
     max_wait : float
         Maximum wait time between image downloads
-    debug : bool
-        If True, log urls that could not be downloaded
     force : bool
         If True force the download even if the files already exists
 
@@ -271,7 +257,6 @@ def download(urls,
         min_wait=min_wait,
         max_wait=max_wait,
         session=session,
-        debug=debug,
     )
 
     return downloader(urls, paths=paths, force=force)

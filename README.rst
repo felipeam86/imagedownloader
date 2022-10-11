@@ -76,7 +76,6 @@ Here is the complete list of parameters taken by ``download``:
    indicating the thumbnail sizes to be created.
 -  ``min_wait``: Minimum wait time between image downloads
 -  ``max_wait``: Maximum wait time between image downloads
--  ``debug`` If True, ``imgdl`` logs urls that could not be downloaded
 -  ``force``: ``download`` checks first if the image already exists on
    ``store_path`` in order to avoid double downloads. If you want to
    force downloads, set this to True.
@@ -95,7 +94,7 @@ It can also be used as a command line utility:
     $ imgdl --help
     usage: imgdl [-h] [-o STORE_PATH] [--thumbs THUMBS] [--n_workers N_WORKERS]
                  [--timeout TIMEOUT] [--min_wait MIN_WAIT] [--max_wait MAX_WAIT]
-                 [-f] [-d]
+                 [-f]
                  urls
 
     Bulk image downloader from a list of urls
@@ -119,7 +118,6 @@ It can also be used as a command line utility:
                             0.0)
       -f, --force           Force the download even if the files already exists
                             (default: False)
-      -d, --debug           Activate debug mode (default: False)
 
 Acknowledgements
 ----------------

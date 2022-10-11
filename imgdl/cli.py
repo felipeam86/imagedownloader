@@ -43,9 +43,6 @@ def parse(args=None):
     parser.add_argument('-f', '--force', action='store_true',
                         help="Force the download even if the files already exists")
 
-    parser.add_argument('-d', '--debug', action='store_true',
-                        help="Activate debug mode")
-
     args = parser.parse_args(args)
 
     return args
@@ -61,6 +58,5 @@ def main(args=None):
         timeout=args.timeout,
         min_wait=args.min_wait,
         max_wait=args.max_wait,
-        debug=args.debug,
         force=args.force,
     )
