@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 import hashlib
 import random
 from collections.abc import Iterable
@@ -46,12 +43,12 @@ class ImageDownloader(object):
         requests session
     """
 
-    store_path : Path = config['STORE_PATH']
-    n_workers : int = config['N_WORKERS']
-    timeout : float = config['TIMEOUT']
-    min_wait : float = config['MIN_WAIT']
-    max_wait : float = config['MAX_WAIT']
-    session : requests.Session = requests.Session()
+    store_path: Path = config["STORE_PATH"]
+    n_workers: int = config["N_WORKERS"]
+    timeout: float = config["TIMEOUT"]
+    min_wait: float = config["MIN_WAIT"]
+    max_wait: float = config["MAX_WAIT"]
+    session: requests.Session = requests.Session()
 
     def __call__(self, urls, paths=None, force=False):
         """Download url or list of urls
@@ -60,7 +57,7 @@ class ImageDownloader(object):
         ----------
         urls : str | list
             url or list of urls to be downloaded
-        
+
         path : str | list
             path or list of paths where the image(s) should be stored
 
@@ -89,7 +86,9 @@ class ImageDownloader(object):
             }
             total = len(future_to_url)
             paths = [None] * total
-            for future in tqdm(futures.as_completed(future_to_url), total=total, miniters=1):
+            for future in tqdm(
+                futures.as_completed(future_to_url), total=total, miniters=1
+            ):
                 i, url = future_to_url[future]
                 if future.exception() is None:
                     paths[i] = str(future.result())
@@ -111,7 +110,7 @@ class ImageDownloader(object):
         ----------
         url : str
             url of the image to be downloaded
-        
+
         path : str
             path where the image should be stored
 
@@ -131,44 +130,47 @@ class ImageDownloader(object):
             Path where the image was stored
         """
         metadata = {
-            'success': False,
-            'url': url,
+            "success": False,
+            "url": url,
         }
-        path = Path(path) if path is not None else Path(self.store_path, hashlib.sha1(to_bytes(url)).hexdigest() + '.jpg')
+        path = (
+            Path(path)
+            if path is not None
+            else Path(self.store_path, hashlib.sha1(to_bytes(url)).hexdigest() + ".jpg")
+        )
         if path.exists() and not force:
-            metadata.update({
-                'success': True,
-                'filepath': path
-            })
+            metadata.update({"success": True, "filepath": path})
             logger.info("On cache", extra=metadata)
             return path
         try:
             session = session or requests.Session()
             timeout = timeout or self.timeout
-            metadata['session'] = {
-                'headers': dict(session.headers),
-                'timeout': timeout,
+            metadata["session"] = {
+                "headers": dict(session.headers),
+                "timeout": timeout,
             }
             response = session.get(url, timeout=timeout)
-            metadata['response'] = {
-                'headers': dict(response.headers),
-                'status_code': response.status_code,
+            metadata["response"] = {
+                "headers": dict(response.headers),
+                "status_code": response.status_code,
             }
             orig_img = Image.open(BytesIO(response.content))
             img, buf = self.convert_image(orig_img)
-            with path.open('wb') as f:
+            with path.open("wb") as f:
                 f.write(buf.getvalue())
-            metadata.update({
-                'success': True,
-                'filepath': path,
-            })
+            metadata.update(
+                {
+                    "success": True,
+                    "filepath": path,
+                }
+            )
 
             logger.info("Downloaded", extra=metadata)
             sleep(random.uniform(self.min_wait, self.max_wait))
         except Exception as e:
-            metadata['Exception'] = {
-                'type': type(e),
-                'msg': str(e),
+            metadata["Exception"] = {
+                "type": type(e),
+                "msg": str(e),
             }
             logger.error(f"Failed", extra=metadata)
             raise e
@@ -191,42 +193,44 @@ class ImageDownloader(object):
         buf : BytesIO
             Buffer of the converted image
         """
-        if img.format == 'PNG' and img.mode == 'RGBA':
-            background = Image.new('RGBA', img.size, (255, 255, 255))
+        if img.format == "PNG" and img.mode == "RGBA":
+            background = Image.new("RGBA", img.size, (255, 255, 255))
             background.paste(img, img)
-            img = background.convert('RGB')
-        elif img.mode == 'P':
+            img = background.convert("RGB")
+        elif img.mode == "P":
             img = img.convert("RGBA")
-            background = Image.new('RGBA', img.size, (255, 255, 255))
+            background = Image.new("RGBA", img.size, (255, 255, 255))
             background.paste(img, img)
-            img = background.convert('RGB')
-        elif img.mode != 'RGB':
-            img = img.convert('RGB')
+            img = background.convert("RGB")
+        elif img.mode != "RGB":
+            img = img.convert("RGB")
 
         if size:
             img = img.copy()
             img.thumbnail(size, Image.ANTIALIAS)
 
         buf = BytesIO()
-        img.save(buf, 'JPEG')
+        img.save(buf, "JPEG")
         return img, buf
 
 
-def download(urls,
-             paths=None,
-             store_path=config['STORE_PATH'],
-             n_workers=config['N_WORKERS'],
-             timeout=config['TIMEOUT'],
-             min_wait=config['MIN_WAIT'],
-             max_wait=config['MAX_WAIT'],
-             session=requests.Session(),
-             force=False):
+def download(
+    urls,
+    paths=None,
+    store_path=config["STORE_PATH"],
+    n_workers=config["N_WORKERS"],
+    timeout=config["TIMEOUT"],
+    min_wait=config["MIN_WAIT"],
+    max_wait=config["MAX_WAIT"],
+    session=requests.Session(),
+    force=False,
+):
     """Asynchronously download images using multiple threads.
 
     Parameters
     ----------
     urls : iterator
-        Iterator of urls    
+        Iterator of urls
     path : list
         list of paths where the images should be stored
     store_path : str

@@ -1,28 +1,25 @@
-# -*- coding: utf-8 -*-
-
 import logging
 import sys
-from pathlib import Path
 from multiprocessing import cpu_count
+from pathlib import Path
 
 import yaml
 from pythonjsonlogger import jsonlogger
-import requests
 
 PACKAGE_NAME = "imgdl"
 
 config = {
-    'STORE_PATH': str(Path('~', '.datasets', 'imgdl').expanduser()),
-    'N_WORKERS': cpu_count() * 10,
-    'TIMEOUT': 5.0,
-    'MIN_WAIT': 0.0,
-    'MAX_WAIT': 0.0,
+    "STORE_PATH": str(Path("~", ".datasets", "imgdl").expanduser()),
+    "N_WORKERS": cpu_count() * 10,
+    "TIMEOUT": 5.0,
+    "MIN_WAIT": 0.0,
+    "MAX_WAIT": 0.0,
 }
 
 
 extra_config_files = [
-    Path('~/.wit/config.yaml').expanduser(),  # System wide configurations
-    Path('.', 'config.yaml')                  # Project specific configurations
+    Path("~/.wit/config.yaml").expanduser(),  # System wide configurations
+    Path(".", "config.yaml"),  # Project specific configurations
 ]
 
 for config_file in extra_config_files:
