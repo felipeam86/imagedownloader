@@ -53,12 +53,8 @@ class ImageDownloader(object):
     max_wait = attr.ib(converter=float, default=config['MAX_WAIT'])
     session = attr.ib(default=requests.Session())
     debug = attr.ib(converter=bool, default=False)
-    logfile = attr.ib(default=config.get('LOGFILE'))
+    logfile = attr.ib(default=config.get('LOGFILE', 'imgdl.log'))
 
-
-    @store_path.validator
-    def mkdir(self, attribute, value):
-        Path(self.store_path).mkdir(exist_ok=True, parents=True)
 
     @debug.validator
     def get_logger(self, attribute, value):
@@ -274,6 +270,7 @@ def download(urls,
         If url is iterable the list of image paths is returned. If
         image failed to download, None is given instead of image path
     """
+    Path(store_path).mkdir(exist_ok=True, parents=True)
     downloader = ImageDownloader(
         store_path=store_path,
         n_workers=n_workers,
