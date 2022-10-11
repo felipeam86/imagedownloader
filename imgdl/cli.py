@@ -19,35 +19,35 @@ def parse(args=None):
         "-o",
         "--store_path",
         type=str,
-        default=config["STORE_PATH"],
+        default=config.STORE_PATH,
         help="Root path where images should be stored",
     )
 
     parser.add_argument(
         "--n_workers",
         type=int,
-        default=config["N_WORKERS"],
+        default=config.N_WORKERS,
         help="Number of simultaneous threads to use",
     )
 
     parser.add_argument(
         "--timeout",
         type=float,
-        default=config["TIMEOUT"],
+        default=config.TIMEOUT,
         help="Timeout to be given to the url request",
     )
 
     parser.add_argument(
         "--min_wait",
         type=float,
-        default=config["MIN_WAIT"],
+        default=config.MIN_WAIT,
         help="Minimum wait time between image downloads",
     )
 
     parser.add_argument(
         "--max_wait",
         type=float,
-        default=config["MAX_WAIT"],
+        default=config.MAX_WAIT,
         help="Maximum wait time between image downloads",
     )
 

@@ -12,8 +12,8 @@ python = "^3.9"
 Pillow = "^9.2.0"
 requests = "^2.28.1"
 tqdm = "^4.64.1"
-PyYAML = "^6.0"
 python-json-logger = "^2.0.4"
+pydantic = "^1.10.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.1.3"

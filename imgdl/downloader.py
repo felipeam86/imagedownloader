@@ -16,7 +16,7 @@ from .utils import to_bytes
 
 logger = get_logger(
     __name__,
-    filename=config.get("LOGFILE", "imgdl.log"),
+    filename=config.LOGFILE,
     streamhandler=True,
 )
 
@@ -43,11 +43,11 @@ class ImageDownloader(object):
         requests session
     """
 
-    store_path: Path = config["STORE_PATH"]
-    n_workers: int = config["N_WORKERS"]
-    timeout: float = config["TIMEOUT"]
-    min_wait: float = config["MIN_WAIT"]
-    max_wait: float = config["MAX_WAIT"]
+    store_path: Path = config.STORE_PATH
+    n_workers: int = config.N_WORKERS
+    timeout: float = config.TIMEOUT
+    min_wait: float = config.MIN_WAIT
+    max_wait: float = config.MAX_WAIT
     session: requests.Session = requests.Session()
 
     def __call__(self, urls, paths=None, force=False):
@@ -217,11 +217,11 @@ class ImageDownloader(object):
 def download(
     urls,
     paths=None,
-    store_path=config["STORE_PATH"],
-    n_workers=config["N_WORKERS"],
-    timeout=config["TIMEOUT"],
-    min_wait=config["MIN_WAIT"],
-    max_wait=config["MAX_WAIT"],
+    store_path=config.STORE_PATH,
+    n_workers=config.N_WORKERS,
+    timeout=config.TIMEOUT,
+    min_wait=config.MIN_WAIT,
+    max_wait=config.MAX_WAIT,
     session=requests.Session(),
     force=False,
 ):

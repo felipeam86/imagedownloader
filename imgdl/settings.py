@@ -3,30 +3,19 @@ import sys
 from multiprocessing import cpu_count
 from pathlib import Path
 
-import yaml
 from pythonjsonlogger import jsonlogger
 
-PACKAGE_NAME = "imgdl"
+from pydantic import BaseSettings
 
-config = {
-    "STORE_PATH": str(Path("~", ".datasets", "imgdl").expanduser()),
-    "N_WORKERS": cpu_count() * 10,
-    "TIMEOUT": 5.0,
-    "MIN_WAIT": 0.0,
-    "MAX_WAIT": 0.0,
-}
+class Base(BaseSettings):
+    STORE_PATH: Path = Path("~", ".datasets", "imgdl").expanduser()
+    N_WORKERS: int = cpu_count() * 10
+    TIMEOUT: float = 5.0
+    MIN_WAIT: float = 0.0
+    MAX_WAIT: float = 0.0
+    LOGFILE: Path = "imgdl.log"
 
-
-extra_config_files = [
-    Path("~/.wit/config.yaml").expanduser(),  # System wide configurations
-    Path(".", "config.yaml"),  # Project specific configurations
-]
-
-for config_file in extra_config_files:
-    if config_file.exists():
-        extra_config = yaml.load(config_file.open())
-        if PACKAGE_NAME in extra_config:
-            config.update(extra_config[PACKAGE_NAME])
+config = Base()
 
 
 def get_logger(name, filename=None, streamhandler=False):
