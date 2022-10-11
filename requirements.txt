@@ -1,6 +1,0 @@
-Pillow>=4.2.1
-requests>=2.14.2
-tqdm>=4.24.0
-PyYAML
-attrs
-python-json-logger
