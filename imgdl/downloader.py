@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import hashlib
-import logging
 import random
 from collections.abc import Iterable
 from concurrent import futures
@@ -18,6 +17,12 @@ from tqdm.auto import tqdm
 
 from .settings import config, get_logger
 from .utils import to_bytes
+
+logger = get_logger(
+    __name__,
+    filename=config.get("LOGFILE", "imgdl.log"),
+    streamhandler=True,
+)
 
 
 @attr.s
@@ -42,8 +47,6 @@ class ImageDownloader(object):
         requests session
     debug : bool
         If True, log urls that could not be downloaded
-    logfile : str
-        Path to logfile
     """
 
     store_path = attr.ib(converter=lambda v: Path(v).expanduser(), default=config['STORE_PATH'])
@@ -53,14 +56,7 @@ class ImageDownloader(object):
     max_wait = attr.ib(converter=float, default=config['MAX_WAIT'])
     session = attr.ib(default=requests.Session())
     debug = attr.ib(converter=bool, default=False)
-    logfile = attr.ib(default=config.get('LOGFILE', 'imgdl.log'))
 
-
-    @debug.validator
-    def get_logger(self, attribute, value):
-        self.logger = get_logger(__name__, filename=self.logfile, streamhandler=value)
-        if (self.logfile is None) and (not value):
-            logging.disable(logging.CRITICAL)
 
     def __call__(self, urls, paths=None, force=False):
         """Download url or list of urls
@@ -111,7 +107,7 @@ class ImageDownloader(object):
                 else:
                     n_fail += 1
 
-            self.logger.warning(f"{n_fail} images failed to download")
+            logger.warning(f"{n_fail} images failed to download")
 
         return paths
 
@@ -155,7 +151,7 @@ class ImageDownloader(object):
                 'success': True,
                 'filepath': path
             })
-            self.logger.info('On cache', extra=metadata)
+            logger.info("On cache", extra=metadata)
             return path
         try:
             session = session or requests.Session()
@@ -178,14 +174,14 @@ class ImageDownloader(object):
                 'filepath': path,
             })
 
-            self.logger.info('Downloaded', extra=metadata)
+            logger.info("Downloaded", extra=metadata)
             sleep(random.uniform(self.min_wait, self.max_wait))
         except Exception as e:
             metadata['Exception'] = {
                 'type': type(e),
                 'msg': str(e),
             }
-            self.logger.error(f'Failed', extra=metadata)
+            logger.error(f"Failed", extra=metadata)
             raise e
         return path
 
@@ -236,8 +232,7 @@ def download(urls,
              max_wait=config['MAX_WAIT'],
              session=requests.Session(),
              debug=False,
-             force=False,
-             logfile=config.get('LOGFILE')):
+             force=False):
     """Asynchronously download images using multiple threads.
 
     Parameters
@@ -260,8 +255,6 @@ def download(urls,
         If True, log urls that could not be downloaded
     force : bool
         If True force the download even if the files already exists
-    logfile : str
-        Path to logfile
 
     Returns
     -------
@@ -279,7 +272,6 @@ def download(urls,
         max_wait=max_wait,
         session=session,
         debug=debug,
-        logfile=logfile,
     )
 
     return downloader(urls, paths=paths, force=force)
