@@ -66,13 +66,16 @@ class ImageDownloader(object):
         if (self.logfile is None) and (not value):
             logging.disable(logging.CRITICAL)
 
-    def __call__(self, urls, force=False):
+    def __call__(self, urls, paths=None, force=False):
         """Download url or list of urls
 
         Parameters
         ----------
         urls : str | list
             url or list of urls to be downloaded
+        
+        path : str | list
+            path or list of paths where the image(s) should be stored
 
         force : bool
             If True force the download even if the files already exists
@@ -95,12 +98,12 @@ class ImageDownloader(object):
             raise ValueError("urls should be str or iterable")
 
         if isinstance(urls, str):
-            return str(self._download_image(urls, force=force))
+            return str(self._download_image(urls, paths, force=force))
 
         with futures.ThreadPoolExecutor(max_workers=self.n_workers) as executor:
             n_fail = 0
             future_to_url = {
-                executor.submit(self._download_image, url, force): (i, url)
+                executor.submit(self._download_image, url, paths, force): (i, url)
                 for i, url in enumerate(urls)
             }
             total = len(future_to_url)
@@ -116,7 +119,7 @@ class ImageDownloader(object):
 
         return paths
 
-    def _download_image(self, url, force=False, session=None, timeout=None):
+    def _download_image(self, url, path=None, force=False, session=None, timeout=None):
         """Download image and convert to jpeg rgb mode.
 
         If the image path already exists, it considers that the file has
@@ -127,6 +130,9 @@ class ImageDownloader(object):
         ----------
         url : str
             url of the image to be downloaded
+        
+        path : str
+            path where the image should be stored
 
         force : bool
             If True force the download even if the file already exists
@@ -147,7 +153,7 @@ class ImageDownloader(object):
             'success': False,
             'url': url,
         }
-        path = Path(self.store_path, hashlib.sha1(to_bytes(url)).hexdigest() + '.jpg')
+        path = Path(path) if path is not None else Path(self.store_path, hashlib.sha1(to_bytes(url)).hexdigest() + '.jpg')
         if path.exists() and not force:
             metadata.update({
                 'success': True,
@@ -226,6 +232,7 @@ class ImageDownloader(object):
 
 
 def download(urls,
+             paths=None,
              store_path=config['STORE_PATH'],
              n_workers=config['N_WORKERS'],
              timeout=config['TIMEOUT'],
@@ -240,7 +247,9 @@ def download(urls,
     Parameters
     ----------
     urls : iterator
-        Iterator of urls
+        Iterator of urls    
+    path : list
+        list of paths where the images should be stored
     store_path : str
         Root path where images should be stored
     n_workers : int
@@ -276,4 +285,4 @@ def download(urls,
         logfile=logfile,
     )
 
-    return downloader(urls, force=force)
+    return downloader(urls, paths=paths, force=force)
