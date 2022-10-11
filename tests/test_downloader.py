@@ -50,8 +50,7 @@ def test_wrong_url_on_iterable_returns_none():
 
 
 def test_wrong_url_with_single_call_raise_exception():
-    fail_message = "Expected an exception if image cannot be downloaded on single call"
-    with pytest.raises(Exception, message=fail_message):
+    with pytest.raises(Exception):
         _ = download('http://www.fake.image_url.png')
 
 
