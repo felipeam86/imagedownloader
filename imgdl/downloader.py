@@ -125,6 +125,10 @@ class ImageDownloader(object):
         metadata = {
             "success": False,
             "url": url,
+            "session": {
+                "headers": dict(self.session.headers),
+                "timeout": self.timeout,
+            },
         }
         path = (
             Path(path)
@@ -136,33 +140,35 @@ class ImageDownloader(object):
             logger.info("On cache", extra=metadata)
             return path
         try:
-            metadata["session"] = {
-                "headers": dict(self.session.headers),
-                "timeout": self.timeout,
-            }
+
             response = self.session.get(url, timeout=self.timeout)
-            metadata["response"] = {
-                "headers": dict(response.headers),
-                "status_code": response.status_code,
-            }
             orig_img = Image.open(BytesIO(response.content))
             img, buf = self.convert_image(orig_img)
             with path.open("wb") as f:
                 f.write(buf.getvalue())
+
             metadata.update(
                 {
                     "success": True,
                     "filepath": path,
+                    "response": {
+                        "headers": dict(response.headers),
+                        "status_code": response.status_code,
+                    },
                 }
             )
 
             logger.info("Downloaded", extra=metadata)
             sleep(random.uniform(self.min_wait, self.max_wait))
         except Exception as e:
-            metadata["Exception"] = {
-                "type": type(e),
-                "msg": str(e),
-            }
+            metadata.update(
+                {
+                    "Exception": {
+                        "type": type(e),
+                        "msg": str(e),
+                    },
+                }
+            )
             logger.error(f"Failed", extra=metadata)
             raise e
         return path
@@ -200,8 +206,7 @@ class ImageDownloader(object):
 
     @staticmethod
     def resize_image(img, size):
-        """Resize an image to a given size.
-        """
+        """Resize an image to a given size."""
         img = img.copy()
         img.thumbnail(size, Image.ANTIALIAS)
         return img
