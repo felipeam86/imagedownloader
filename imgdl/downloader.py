@@ -168,6 +168,10 @@ class ImageDownloader(object):
             raise e
         return path
 
+    def get(self, url):
+        response = self.session.get(url, timeout=self.timeout)
+        return Image.open(BytesIO(response.content))
+
     @staticmethod
     def convert_image(img):
         """Convert images to JPG, RGB mode and given size if any.
