@@ -143,9 +143,8 @@ class ImageDownloader(object):
 
             response = self.session.get(url, timeout=self.timeout)
             orig_img = Image.open(BytesIO(response.content))
-            img, buf = self.convert_image(orig_img)
-            with path.open("wb") as f:
-                f.write(buf.getvalue())
+            img = self.convert_image(orig_img)
+            img.save(path)
 
             metadata.update(
                 {
@@ -200,9 +199,7 @@ class ImageDownloader(object):
         elif img.mode != "RGB":
             img = img.convert("RGB")
 
-        buf = BytesIO()
-        img.save(buf, "JPEG")
-        return img, buf
+        return img
 
     @staticmethod
     def resize_image(img, size):
