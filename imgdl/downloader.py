@@ -77,8 +77,8 @@ class ImageDownloader(object):
         with futures.ThreadPoolExecutor(max_workers=self.n_workers) as executor:
             n_fail = 0
             future_to_url = {
-                executor.submit(self._download_image, url, paths, force): (i, url)
-                for i, url in enumerate(urls)
+                executor.submit(self._download_image, url, path, force): (i, url)
+                for i, (url, path) in enumerate(zip(urls, paths))
             }
             total = len(future_to_url)
             paths = [None] * total
