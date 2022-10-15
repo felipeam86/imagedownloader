@@ -99,7 +99,7 @@ class ImageDownloader(object):
 
         return paths
 
-    def _download_image(self, url, path=None, force=False, session=None, timeout=None):
+    def _download_image(self, url, path=None, force=False):
         """Download image and convert to jpeg rgb mode.
 
         If the image path already exists, it considers that the file has
@@ -116,13 +116,6 @@ class ImageDownloader(object):
 
         force : bool
             If True force the download even if the file already exists
-
-        session : requests.Session
-            An instance of requests.Session with which image will be downloaded.
-            Useful when you want to use the same session for several downloads.
-
-        timeout : float
-            Timeout to be given to the url request
 
         Returns
         -------
@@ -143,13 +136,11 @@ class ImageDownloader(object):
             logger.info("On cache", extra=metadata)
             return path
         try:
-            session = session or requests.Session()
-            timeout = timeout or self.timeout
             metadata["session"] = {
-                "headers": dict(session.headers),
-                "timeout": timeout,
+                "headers": dict(self.session.headers),
+                "timeout": self.timeout,
             }
-            response = session.get(url, timeout=timeout)
+            response = self.session.get(url, timeout=self.timeout)
             metadata["response"] = {
                 "headers": dict(response.headers),
                 "status_code": response.status_code,
