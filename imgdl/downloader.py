@@ -165,6 +165,16 @@ class ImageDownloader(object):
                     },
                 }
             )
+            if "response" in locals():
+                metadata.update(
+                    {
+                        "response": {
+                            "headers": dict(response.headers),
+                            "status_code": response.status_code,
+                        },
+                    }
+                )
+
             logger.error(f"Failed", extra=metadata)
             raise e
         return path
