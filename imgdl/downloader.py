@@ -177,14 +177,12 @@ class ImageDownloader(object):
         return path
 
     @staticmethod
-    def convert_image(img, size=None):
+    def convert_image(img):
         """Convert images to JPG, RGB mode and given size if any.
 
         Parameters
         ----------
         img : Pil.Image
-        size : tuple
-            tuple of (width, height)
 
         Returns
         -------
@@ -205,13 +203,17 @@ class ImageDownloader(object):
         elif img.mode != "RGB":
             img = img.convert("RGB")
 
-        if size:
-            img = img.copy()
-            img.thumbnail(size, Image.ANTIALIAS)
-
         buf = BytesIO()
         img.save(buf, "JPEG")
         return img, buf
+
+    @staticmethod
+    def resize_image(img, size):
+        """Resize an image to a given size.
+        """
+        img = img.copy()
+        img.thumbnail(size, Image.ANTIALIAS)
+        return img
 
 
 def download(
