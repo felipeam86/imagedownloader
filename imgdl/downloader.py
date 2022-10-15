@@ -14,11 +14,7 @@ from tqdm.auto import tqdm
 from .settings import config, get_logger
 from .utils import to_bytes
 
-logger = get_logger(
-    __name__,
-    filename=config.LOGFILE,
-    streamhandler=True,
-)
+logger = get_logger(__name__)
 
 
 @dataclass
