@@ -138,6 +138,7 @@ class ImageDownloader(object):
         try:
 
             response = self.session.get(url, timeout=self.timeout)
+            response.raise_for_status()
             orig_img = Image.open(BytesIO(response.content))
             img = self.convert_image(orig_img)
             img.save(path)
