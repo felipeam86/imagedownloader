@@ -74,6 +74,9 @@ class ImageDownloader(object):
         if isinstance(urls, str):
             return str(self._download_image(urls, paths, force=force))
 
+        urls = list(urls)
+        paths = paths or [None] * len(urls)
+
         with futures.ThreadPoolExecutor(max_workers=self.n_workers) as executor:
             n_fail = 0
             future_to_url = {
