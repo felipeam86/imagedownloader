@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "imgdl"
-version = "2.0.0"
+version = "2.0.1"
 description = "Bulk image downloader from a list of urls"
 authors = ["Felipe Aguirre Martinez <felipeam86@gmail.com>"]
 readme = "README.rst"

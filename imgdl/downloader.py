@@ -74,11 +74,14 @@ class ImageDownloader(object):
         if isinstance(urls, str):
             return str(self._download_image(urls, paths, force=force))
 
+        urls = list(urls)
+        paths = paths or [None] * len(urls)
+
         with futures.ThreadPoolExecutor(max_workers=self.n_workers) as executor:
             n_fail = 0
             future_to_url = {
-                executor.submit(self._download_image, url, paths, force): (i, url)
-                for i, url in enumerate(urls)
+                executor.submit(self._download_image, url, path, force): (i, url)
+                for i, (url, path) in enumerate(zip(urls, paths))
             }
             total = len(future_to_url)
             paths = [None] * total
@@ -138,6 +141,7 @@ class ImageDownloader(object):
         try:
 
             response = self.session.get(url, timeout=self.timeout)
+            response.raise_for_status()
             orig_img = Image.open(BytesIO(response.content))
             img = self.convert_image(orig_img)
             img.save(path)
@@ -164,6 +168,16 @@ class ImageDownloader(object):
                     },
                 }
             )
+            if "response" in locals():
+                metadata.update(
+                    {
+                        "response": {
+                            "headers": dict(response.headers),
+                            "status_code": response.status_code,
+                        },
+                    }
+                )
+
             logger.error(f"Failed", extra=metadata)
             raise e
         return path
