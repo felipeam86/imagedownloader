@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from io import BytesIO
 
 from google.cloud import storage
@@ -12,7 +12,7 @@ from .base import BaseStorage
 class GoogleStorage(BaseStorage):
     bucket_name: str
     bucket_path: str = ""
-    client: storage.Client = storage.Client()
+    client: storage.Client = field(default_factory=storage.Client)
 
     def __post_init__(self):
         self.bucket = Bucket(client=self.client, name=self.bucket_name)
