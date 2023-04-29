@@ -10,7 +10,8 @@ from PIL import Image
 from tqdm.auto import tqdm
 
 from .settings import config, get_logger
-from .storage import BaseStorage, LocalStorage
+from .storage.base import BaseStorage
+from .storage.local import LocalStorage
 
 logger = get_logger(__name__)
 
