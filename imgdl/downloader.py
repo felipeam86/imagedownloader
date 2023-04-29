@@ -10,8 +10,7 @@ from PIL import Image
 from tqdm.auto import tqdm
 
 from .settings import config, get_logger
-from .storage.base import BaseStorage
-from .storage.local import LocalStorage
+from .storage.backend import BaseStorage, resolve_storage_backend
 
 logger = get_logger(__name__)
 
@@ -38,7 +37,7 @@ class ImageDownloader(object):
         requests session
     """
 
-    storage: BaseStorage = LocalStorage(config.STORE_PATH)
+    storage: BaseStorage = resolve_storage_backend(config.STORE_PATH)
     n_workers: int = config.N_WORKERS
     timeout: float = config.TIMEOUT
     min_wait: float = config.MIN_WAIT
@@ -260,7 +259,7 @@ def download(
     """
 
     downloader = ImageDownloader(
-        storage=LocalStorage(store_path=store_path),
+        storage=resolve_storage_backend(store_path=store_path),
         n_workers=n_workers,
         timeout=timeout,
         min_wait=min_wait,
