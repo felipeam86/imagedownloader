@@ -1,9 +1,9 @@
 from unittest.mock import patch
 
 import pytest
-from google.cloud.storage import Bucket, Client
 
 from imgdl.storage.backend import GoogleStorage, LocalStorage, resolve_storage_backend
+from imgdl.storage.gcloud import Bucket, Client
 
 
 class TestResoveBackend:
@@ -13,7 +13,7 @@ class TestResoveBackend:
 
     def test_google_storage_with_bucket_only(self, tmp_path):
         with patch("google.cloud.storage.Bucket.exists", spec=Bucket):
-            with patch("google.cloud.storage.Client", spec=Client):
+            with patch("imgdl.storage.gcloud.Client", spec=Client):
                 storage = resolve_storage_backend("gs://non_existing_bucket_12345")
                 assert isinstance(storage, GoogleStorage)
                 assert storage.bucket_name == "non_existing_bucket_12345"
