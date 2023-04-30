@@ -1,10 +1,8 @@
-import hashlib
 import random
 from collections.abc import Iterable
 from concurrent import futures
 from dataclasses import dataclass
 from io import BytesIO
-from pathlib import Path
 from time import sleep
 
 import requests
@@ -12,7 +10,7 @@ from PIL import Image
 from tqdm.auto import tqdm
 
 from .settings import config, get_logger
-from .utils import to_bytes
+from .storage.backend import BaseStorage, resolve_storage_backend
 
 logger = get_logger(__name__)
 
@@ -25,8 +23,8 @@ class ImageDownloader(object):
 
     Parameters
     ----------
-    store_path : str
-        Root path where images should be stored
+    storage : BaseStorage
+        Storage backend
     n_workers : int
         Number of simultaneous threads to use
     timeout : float
@@ -39,7 +37,7 @@ class ImageDownloader(object):
         requests session
     """
 
-    store_path: Path = config.STORE_PATH
+    storage: BaseStorage = resolve_storage_backend(config.STORE_PATH)
     n_workers: int = config.N_WORKERS
     timeout: float = config.TIMEOUT
     min_wait: float = config.MIN_WAIT
@@ -75,7 +73,8 @@ class ImageDownloader(object):
             return str(self._download_image(urls, paths, force=force))
 
         urls = list(urls)
-        paths = paths or [None] * len(urls)
+        if paths is None:
+            paths = [None] * len(urls)
 
         with futures.ThreadPoolExecutor(max_workers=self.n_workers) as executor:
             n_fail = 0
@@ -129,12 +128,8 @@ class ImageDownloader(object):
                 "timeout": self.timeout,
             },
         }
-        path = (
-            Path(path)
-            if path is not None
-            else Path(self.store_path, hashlib.sha1(to_bytes(url)).hexdigest() + ".jpg")
-        )
-        if path.exists() and not force:
+        path = path or self.storage.get_filepath(url)
+        if self.storage.exists(path) and not force:
             metadata.update({"success": True, "filepath": path})
             logger.info("On cache", extra=metadata)
             return path
@@ -144,7 +139,7 @@ class ImageDownloader(object):
             response.raise_for_status()
             orig_img = Image.open(BytesIO(response.content))
             img = self.convert_image(orig_img)
-            img.save(path)
+            self.storage.save(img, path)
 
             metadata.update(
                 {
@@ -178,7 +173,7 @@ class ImageDownloader(object):
                     }
                 )
 
-            logger.error(f"Failed", extra=metadata)
+            logger.error("Failed", extra=metadata)
             raise e
         return path
 
@@ -262,9 +257,9 @@ def download(
         If url is iterable the list of image paths is returned. If
         image failed to download, None is given instead of image path
     """
-    Path(store_path).mkdir(exist_ok=True, parents=True)
+
     downloader = ImageDownloader(
-        store_path=store_path,
+        storage=resolve_storage_backend(store_path=store_path),
         n_workers=n_workers,
         timeout=timeout,
         min_wait=min_wait,

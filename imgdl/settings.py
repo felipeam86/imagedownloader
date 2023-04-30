@@ -7,7 +7,7 @@ from pythonjsonlogger import jsonlogger
 
 
 class Base(BaseSettings):
-    STORE_PATH: Path = Path("~", ".datasets", "imgdl").expanduser()
+    STORE_PATH: str = str(Path("~", ".datasets", "imgdl").expanduser())
     N_WORKERS: int = cpu_count() * 10
     TIMEOUT: float = 5.0
     MIN_WAIT: float = 0.0
